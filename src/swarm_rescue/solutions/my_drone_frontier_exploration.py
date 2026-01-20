@@ -2,7 +2,6 @@ from typing import Optional
 import numpy as np
 import arcade
 
-from swarm_rescue.simulation.drone.controller import CommandsDict
 from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.utils.misc_data import MiscData
 
@@ -239,7 +238,7 @@ class MyDroneFrontex(DroneAbstract):
     def communication_management(self):
         self.communication_manager.process_incoming_messages()
 
-    def control(self) -> CommandsDict:
+    def control(self):
         if self.is_killed():
             # Drone in KillZone. Or at least no lidar available
             return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
