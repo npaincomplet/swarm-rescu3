@@ -78,6 +78,4 @@ There is no collision avoidance mechanism between drones.
 
 ## State machine
 
-### Core Ideas of the Drone State Machine Design
-
 A state machine orchestrates the drone's behavior by managing discrete states that dictates the drone's behaviour (e.g., WAITING, EXPLORING_FRONTIERS, GRASPING_WOUNDED) and transitioning between them based on real-time sensor conditions (e.g., "found_wounded", "near_obstacle").
