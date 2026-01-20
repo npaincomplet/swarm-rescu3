@@ -1,0 +1,131 @@
+from abc import ABC, abstractmethod
+
+class DroneState(ABC):
+    """Abstract base class for all drone states"""
+    
+    def __init__(self, drone):
+        self.drone = drone
+    
+    @abstractmethod
+    def handle(self):
+        """Execute state behavior and return command"""
+        pass
+    
+    def on_enter(self):
+        """Called when entering this state"""
+        pass
+    
+    def on_exit(self):
+        """Called when exiting this state"""
+        pass
+
+
+class WaitingState(DroneState):
+    def handle(self):
+        self.drone.step_waiting_count += 1
+        return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+
+
+class SearchingWallState(DroneState):
+    def handle(self):
+        return {"forward": 0.5, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+
+
+class FollowingWallState(DroneState):
+    def handle(self):
+        epsilon_wall_distance = self.drone.min_dist_wall - self.drone.DIST_TO_STAY
+
+        self.drone.logging_variables({
+            "epsilon_wall_angle": self.drone.epsilon_wall_angle, 
+            "epsilon_wall_distance": epsilon_wall_distance
+        })
+
+        command = {
+            "forward": self.drone.wall_following_params.SPEED_FOLLOWING_WALL, 
+            "lateral": 0.0, 
+            "rotation": 0.0, 
+            "grasper": 0
+        }
+
+        command = self.drone.rotation_pid.update_command(
+            command, 
+            self.drone.epsilon_wall_angle, 
+            self.drone.odometer_values()
+        )
+    
+        command = self.drone.lateral_pid.update_command(
+            command, 
+            epsilon_wall_distance, 
+            self.drone.odometer_values()
+        )
+
+        return command
+
+
+class GraspingWoundedState(DroneState):
+    def handle(self):
+        command = {
+            "forward": self.drone.grasping_params.GRASPING_SPEED, 
+            "lateral": 0.0, 
+            "rotation": 0.0, 
+            "grasper": 1 if self.drone.min_dist_wounded < self.drone.grasping_params.GRASPING_DIST else 0
+        }
+        
+        return self.drone.rotation_pid.update_command(
+            command, 
+            self.drone.epsilon_wounded, 
+            self.drone.odometer_values()
+        )
+
+
+class SearchingRescueCenterState(DroneState):
+    def on_enter(self):
+        self.drone.plan_path_to_rescue_center()
+        
+    def handle(self):
+        return self.drone.follow_path(found_and_near_wounded=True)
+    
+    def on_exit(self):
+        self.drone.reset_path_params()
+
+
+class GoingRescueCenterState(DroneState):
+    def handle(self):
+        command = {
+            "forward": 3 * self.drone.grasping_params.GRASPING_SPEED, 
+            "lateral": 0.0, 
+            "rotation": 0.0, 
+            "grasper": 1
+        }
+        
+        command = self.drone.rotation_pid.update_command(
+            command, 
+            self.drone.epsilon_rescue_center, 
+            self.drone.odometer_values()
+        )
+
+        if self.drone.is_near_rescue_center:
+            command["forward"] = 0.0
+            command["rotation"] = 1.0  # Rotate in place to drop off
+
+        return command
+
+
+class ExploringFrontiersState(DroneState):
+    def on_enter(self):
+        self.drone.plan_path_to_frontier()
+
+    def handle(self):
+        if self.drone.path_controller.finished_path:
+            self.drone.plan_path_to_frontier()
+
+        if self.drone.explored_all_frontiers or self.drone.path_controller.path is None:
+            # Return waiting behavior without changing state
+            self.drone.reset_path_params()
+            self.drone.step_waiting_count += 1
+            return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+        else:
+            return self.drone.follow_path(found_and_near_wounded=False)
+        
+    def on_exit(self):
+        self.drone.reset_path_params()
