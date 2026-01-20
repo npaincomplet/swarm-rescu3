@@ -1,11 +1,8 @@
 import numpy as np
-from scipy.ndimage import label
 import cv2
-from spg_overlay.utils.constants import MAX_RANGE_LIDAR_SENSOR
+from swarm_rescue.simulation.utils.constants import MAX_RANGE_LIDAR_SENSOR
 from solutions.components.pose import Pose
-from solutions.components.communication import DroneMessage
 from solutions.components.astar import *
-from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
 from solutions.utils.dataclasses_config import *
 
 from sklearn.cluster import DBSCAN

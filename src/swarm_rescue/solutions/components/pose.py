@@ -1,13 +1,13 @@
 from typing import Tuple, Optional
 import numpy as np
-from spg_overlay.utils.utils import normalize_angle
+from swarm_rescue.simulation.utils.utils import normalize_angle
 from solutions.utils.dataclasses_config import *
 
 # Physics engine imports
 import pymunk
-from solutions.utils.drone_base_twin import DroneBaseTwin
-from spg.utils.definitions import SPACE_DAMPING, SIMULATION_STEPS, LINEAR_FORCE, ANGULAR_VELOCITY
-from spg_overlay.utils.constants import LINEAR_SPEED_RATIO, ANGULAR_SPEED_RATIO
+from swarm_rescue.simulation.drone.drone_base import DroneBase
+from swarm_rescue.simulation.utils.definitions import SPACE_DAMPING, SIMULATION_STEPS, LINEAR_FORCE, ANGULAR_VELOCITY
+from swarm_rescue.simulation.utils.constants import LINEAR_SPEED_RATIO, ANGULAR_SPEED_RATIO
 
 class Pose:
     """
@@ -63,7 +63,7 @@ class CommandPose:
         self.space = space
         
         # Create drone physics body
-        self.base = DroneBaseTwin()
+        self.base = DroneBase()
         
         # Set initial position and orientation of the physics body
         self.base._pm_body.position = (self.position[0], self.position[1])
@@ -117,7 +117,7 @@ class StateCommandPose:
         self.space = space
         
         # Create drone physics body
-        self.base = DroneBaseTwin()
+        self.base = DroneBase()
         
         # Set initial position and orientation of the physics body
         self.base._pm_body.position = (self.position[0], self.position[1])
@@ -888,253 +888,3 @@ class TestPose:
 
     def get_covariance(self) -> np.ndarray:
         return self.P.copy()
-
-class TestPose2:
-    """
-    Command-informed EKF with odometry feedback and a resettable physics twin.
-
-    State x (6):
-        [px, py, theta, vx, vy, vtheta]
-
-    Design:
-        - Prediction: primary from odometry (true feedback even under collisions).
-        - Auxiliary prediction: command-driven physics twin; blended in with small weight.
-        - Update: GPS (x,y) + compass (theta) with Mahalanobis gating.
-        - After every correction, the physics twin is hard-reset to x to prevent drift.
-    """
-    def __init__(self, loc_params=LocalizationParams, initial_state: Optional[np.ndarray] = None,
-                 twin_blend: float = 0.15, gating_thresh: float = 9.21):
-        """
-        twin_blend: [0..1] weight for blending the twin-prediction into the odom prediction.
-        gating_thresh: chi^2 threshold for innovation gating (≈9.21 ~ 97.5% for 2-3 DoF).
-        """
-        self.loc = loc_params
-        self.nx = 6
-
-        if initial_state is None:
-            self.x = np.zeros(self.nx, dtype=float)
-        else:
-            assert initial_state.shape == (self.nx,)
-            self.x = initial_state.astype(float)
-
-        # Physics twin (used as auxiliary predictor; will be reset after updates)
-        self.space = pymunk.Space()
-        self.space.gravity = pymunk.Vec2d(0.0, 0.0)
-        self.space.damping = SPACE_DAMPING
-        self.base = DroneBaseTwin()
-        self.base._pm_body.position = (float(self.x[0]), float(self.x[1]))
-        self.base._pm_body.angle = float(self.x[2])
-        self.space.add(self.base._pm_body, *self.base._pm_shapes)
-
-        # Measurement covariance (GPS + compass)
-        self.R_full = np.diag([
-            self.loc.GPS_NOISE_STD ** 2,
-            self.loc.GPS_NOISE_STD ** 2,
-            self.loc.COMPASS_NOISE_STD ** 2
-        ])
-
-        # Process noise (pose & velocity); velocity noise slightly higher
-        self.Q_model = np.diag([0.05, 0.05, 0.01, 0.15, 0.15, 0.08])
-
-        # Odometer noise (for process mapping)
-        self.Q_odom = np.diag([
-            self.loc.ODOMETER_DISTANCE_NOISE_STD ** 2,
-            self.loc.ODOMETER_ALPHA_NOISE_STD ** 2,
-            self.loc.ODOMETER_THETA_NOISE_STD ** 2
-        ])
-
-        # Covariance
-        self.P = np.eye(self.nx) * 1.0
-
-        # Blending & gating params
-        self.twin_blend = float(np.clip(twin_blend, 0.0, 1.0))
-        self.gating_thresh = float(gating_thresh)
-
-        self.last_command = {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
-
-    @property
-    def position(self) -> np.ndarray:
-        return self.x[0:2].copy()
-
-    @property
-    def orientation(self) -> float:
-        return float(self.x[2])
-
-    # ----------------------------- Prediction -----------------------------
-
-    def _predict_with_odometry(self, odometer_values: Tuple[float, float, float]):
-        """
-        EKF prediction using odometry (primary source of truth; includes wall contacts).
-        Odom = (d, alpha_rel, dtheta)
-        """
-        d, alpha_rel, dtheta = odometer_values
-        px, py, theta, vx, vy, vtheta = self.x
-
-        theta_new = normalize_angle(theta + dtheta)
-        move_angle = normalize_angle(theta + alpha_rel)
-
-        px_new = px + d * np.cos(move_angle)
-        py_new = py + d * np.sin(move_angle)
-
-        # velocity proxies from odom this step (dt=1 sim step)
-        vx_new = d * np.cos(move_angle)
-        vy_new = d * np.sin(move_angle)
-        vtheta_new = dtheta
-
-        x_pred = np.array([px_new, py_new, theta_new, vx_new, vy_new, vtheta_new], dtype=float)
-
-        # Jacobian F wrt state (linearized kinematics like EKF)
-        F = np.eye(self.nx)
-        F[0, 2] = -d * np.sin(move_angle)   # ∂x/∂theta
-        F[1, 2] =  d * np.cos(move_angle)   # ∂y/∂theta
-        # simple velocity propagation (keep identity)
-
-        # Map odom noise into pose part via G (6x3)
-        G = np.zeros((self.nx, 3))
-        # ∂px/∂d, ∂px/∂alpha
-        G[0, 0] = np.cos(move_angle)
-        G[0, 1] = -d * np.sin(move_angle)
-        # ∂py/∂d, ∂py/∂alpha
-        G[1, 0] = np.sin(move_angle)
-        G[1, 1] =  d * np.cos(move_angle)
-        # ∂theta/∂dtheta
-        G[2, 2] = 1.0
-        # velocities inherit same mapping (coarse but stabilizing)
-        G[3, 0] = np.cos(move_angle)
-        G[3, 1] = -d * np.sin(move_angle)
-        G[4, 0] = np.sin(move_angle)
-        G[4, 1] =  d * np.cos(move_angle)
-        G[5, 2] = 1.0
-
-        # Propagate covariance
-        self.P = F @ self.P @ F.T + G @ self.Q_odom @ G.T + self.Q_model
-
-        self.x = x_pred
-        self.x[2] = normalize_angle(self.x[2])
-
-    def _aux_predict_with_twin(self, command: dict):
-        """
-        Auxiliary prediction using the physics twin; returns predicted state from the twin.
-        """
-        if command is None:
-            command = self.last_command
-
-        # run the twin forward one sim step
-        self.base._apply_commands(command)
-        for _ in range(SIMULATION_STEPS):
-            self.space.step(1.0 / SIMULATION_STEPS)
-
-        px, py = self.base._pm_body.position
-        theta = normalize_angle(self.base._pm_body.angle)
-        vx, vy = self.base._pm_body.velocity
-        vtheta = self.base._pm_body.angular_velocity
-
-        return np.array([px, py, theta, vx, vy, vtheta], dtype=float)
-
-    def _blend_with_twin(self, x_from_odom: np.ndarray, x_from_twin: np.ndarray):
-        """
-        Blend pose & velocity with a small twin contribution; odom stays dominant.
-        """
-        if self.twin_blend <= 0.0:
-            return x_from_odom
-        w = self.twin_blend
-        y = (1.0 - w) * x_from_odom + w * x_from_twin
-        y[2] = normalize_angle(y[2])
-        return y
-
-    # ----------------------------- Update -----------------------------
-
-    def _update_measurements(self,
-                             gps_position: Optional[np.ndarray],
-                             compass_angle: Optional[float]):
-        """
-        EKF correction with GPS (x,y) and compass (theta) + Mahalanobis gating.
-        """
-        z_list = []
-        H_rows = []
-
-        if gps_position is not None:
-            z_list.extend([float(gps_position[0]), float(gps_position[1])])
-            H_rows.append([1, 0, 0, 0, 0, 0])
-            H_rows.append([0, 1, 0, 0, 0, 0])
-
-        have_compass = compass_angle is not None
-        if have_compass:
-            z_list.append(float(compass_angle))
-            H_rows.append([0, 0, 1, 0, 0, 0])
-
-        if not z_list:
-            return  # no sensors available
-
-        z = np.array(z_list, dtype=float)
-        H = np.array(H_rows, dtype=float)
-        R = self.R_full[:len(z), :len(z)]
-
-        # Innovation
-        hx = H @ self.x
-        y = z - hx
-        if have_compass:
-            y[-1] = normalize_angle(y[-1])
-
-        # Mahalanobis gating
-        S = H @ self.P @ H.T + R
-        try:
-            Sinv = np.linalg.inv(S)
-        except np.linalg.LinAlgError:
-            # regularize if nearly singular
-            S = S + np.eye(S.shape[0]) * 1e-9
-            Sinv = np.linalg.inv(S)
-
-        d2 = float(y.T @ Sinv @ y)
-        if d2 > self.gating_thresh:
-            # reject this update (likely GPS/compass glitch)
-            return
-
-        # Kalman update
-        K = self.P @ H.T @ Sinv
-        self.x = self.x + K @ y
-        self.x[2] = normalize_angle(self.x[2])
-        I = np.eye(self.nx)
-        self.P = (I - K @ H) @ self.P
-        # symmetrize
-        self.P = 0.5 * (self.P + self.P.T)
-
-    # ----------------------------- Public API -----------------------------
-
-    def step(self,
-             odometer_values: Optional[Tuple[float, float, float]] = None,
-             gps_position: Optional[np.ndarray] = None,
-             compass_angle: Optional[float] = None,
-             command: Optional[dict] = None) -> None:
-        """
-        One filter cycle.
-        - Predict with odometry (primary). If none, fall back to twin.
-        - Blend a small contribution from the twin.
-        - Update with GPS/compass.
-        - Reset twin to the corrected state.
-        """
-        # 1) Primary prediction (odometry)
-        used_odom = False
-        if odometer_values is not None:
-            self._predict_with_odometry(odometer_values)
-            used_odom = True
-
-        # 2) Auxiliary twin prediction, blend in
-        x_twin = self._aux_predict_with_twin(command if command is not None else self.last_command)
-        if used_odom:
-            self.x = self._blend_with_twin(self.x, x_twin)
-        else:
-            # No odom available (e.g., sensor outage) -> rely on twin
-            self.x = x_twin
-
-        # 3) Measurement update
-        self._update_measurements(gps_position, compass_angle)
-
-        # 4) Reset twin to corrected state to avoid long-term drift
-        self.base._pm_body.position = (float(self.x[0]), float(self.x[1]))
-        self.base._pm_body.angle = float(self.x[2])
-        self.base._pm_body.velocity = (float(self.x[3]), float(self.x[4]))
-        self.base._pm_body.angular_velocity = float(self.x[5])
-
-        # 5) Book-keeping
-        self.last_command = command if command is not None else self.last_command

@@ -1,7 +1,5 @@
 import numpy as np
 from typing import List
-from spg_overlay.entities.wounded_person import WoundedPerson
-from solutions.components.pose import Position
 from solutions.utils.dataclasses_config import TrackingParams
 
 class TrackedWounded:

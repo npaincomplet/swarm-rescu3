@@ -1,4 +1,3 @@
-import numpy as np
 from collections import deque
 from solutions.utils.dataclasses_config import HealthParams
 

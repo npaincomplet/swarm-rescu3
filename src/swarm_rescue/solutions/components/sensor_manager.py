@@ -1,7 +1,7 @@
 import numpy as np
 import math
-from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
-from spg_overlay.utils.utils import circular_mean
+from swarm_rescue.simulation.ray_sensors.drone_semantic_sensor import DroneSemanticSensor
+from swarm_rescue.simulation.utils.utils import circular_mean
 from solutions.utils.dataclasses_config import SensorParams, GraspingParams, WallFollowingParams
 
 class SensorManager:

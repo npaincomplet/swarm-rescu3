@@ -1,5 +1,4 @@
 import numpy as np
-from solutions.components.pid_controller import PIDController
 
 class PathController:
     def __init__(self, path_params, rotation_pid, lateral_pid, forward_pid, ray_angles):

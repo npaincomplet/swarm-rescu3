@@ -2,8 +2,10 @@ from typing import Optional
 import numpy as np
 import arcade
 
-from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.utils.misc_data import MiscData
+from swarm_rescue.simulation.drone.controller import CommandsDict
+from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
+from swarm_rescue.simulation.utils.misc_data import MiscData
+
 from solutions.components.pose import *
 from solutions.components.astar import *
 from solutions.components.communication import *
@@ -45,12 +47,9 @@ class MyDroneFrontex(DroneAbstract):
         self.mapping_params = MappingParams()
         self.estimated_pose = Pose(size_area=self.size_area)
         self.odometer_pose = OdometerPose(self)
-        self.command_pose = CommandPose(self)
-        self.state_command_pose = StateCommandPose()
         self.kf_pose = KalmanFilterPose()
         self.augmented_pose = AugmentedEKFLocalization()
         self.test_pose = TestPose()
-        self.test_pose_2 = TestPose2()
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
                                  lidar=self.lidar(), semantic=self.semantic())
@@ -125,8 +124,7 @@ class MyDroneFrontex(DroneAbstract):
                 "measured_gps": self.measured_gps_position,
                 "kf": lambda: self.kf_pose.position,
                 "augmented_ekf": lambda: self.augmented_pose.position,
-                "test_pose": lambda: self.test_pose.position,
-                "test_pose_2": lambda: self.test_pose_2.position
+                "test_pose": lambda: self.test_pose.position
             }
         )
 
@@ -221,10 +219,10 @@ class MyDroneFrontex(DroneAbstract):
             "near_obstacle": self.near_obstacle,
             "lost_wall": not self.near_obstacle,
             "found_wounded": self.found_wounded,
-            "holding_wounded": bool(self.base.grasper.grasped_entities),
-            "lost_wounded": not self.found_wounded and not self.base.grasper.grasped_entities,
+            "holding_wounded": bool(self.grasper.grasped_wounded_persons),
+            "lost_wounded": not self.found_wounded and not self.grasper.grasped_wounded_persons,
             "found_rescue_center": self.found_rescue_center,
-            "lost_rescue_center": not self.base.grasper.grasped_entities,
+            "lost_rescue_center": not self.grasper.grasped_wounded_persons,
             "no_frontiers_left": len(self.grid.frontiers) == 0,
             "waiting_time_over": self.step_waiting_count >= self.waiting_params.STEP_WAITING,
             "is_near_rescuing_drone": is_near_rescuing_drone
@@ -241,7 +239,7 @@ class MyDroneFrontex(DroneAbstract):
     def communication_management(self):
         self.communication_manager.process_incoming_messages()
 
-    def control(self):
+    def control(self) -> CommandsDict:
         if self.is_killed():
             # Drone in KillZone. Or at least no lidar available
             return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
@@ -274,17 +272,13 @@ class MyDroneFrontex(DroneAbstract):
 
         # Execute current state behavior
         if self.timestep_count == 1:
-            self.command_pose = CommandPose(self)
             true_initial_state = np.array([self.true_position()[0], self.true_position()[1], self.true_angle(), 0,0,0])
-            self.state_command_pose = StateCommandPose(initial_state=true_initial_state)
             self.odometer_pose = OdometerPose(self)
             initial_state = np.array([self.measured_gps_position()[0],self.measured_gps_position()[1], self.measured_compass_angle(),0,0,0])
             self.augmented_pose = AugmentedEKFLocalization(initial_state=initial_state)
             self.test_pose = TestPose(initial_state=initial_state)
-            self.test_pose_2 = TestPose2(initial_state=initial_state)
 
         command = self.state_machine.handle_current_state()
-        self.command_pose.update(command)
 
         ### Command should be computed after position is updated (as is done for estimated_pose in mapping method)
 
@@ -293,16 +287,6 @@ class MyDroneFrontex(DroneAbstract):
             compass_angle=self.measured_compass_angle(),
             odometer_values=self.odometer_values()
         )
-
-        self.state_command_pose.step(
-            gps_position=self.measured_gps_position(),
-            compass_angle=self.measured_compass_angle(),
-            odometer_values=self.odometer_values(),
-            command=command
-        )
-        print("TRUE CINETICS")
-        print(self.base._pm_body.velocity, self.base._pm_body.angular_velocity)
-        print()
 
         self.kf_pose.update(
             gps_position=self.measured_gps_position(),
@@ -317,12 +301,6 @@ class MyDroneFrontex(DroneAbstract):
         )
 
         self.test_pose.step(
-            odometer_values=self.odometer_values(),
-            gps_position=self.measured_gps_position(),
-            compass_angle=self.measured_compass_angle()
-        )
-
-        self.test_pose_2.step(
             odometer_values=self.odometer_values(),
             gps_position=self.measured_gps_position(),
             compass_angle=self.measured_compass_angle()
@@ -502,18 +480,7 @@ class MyDroneFrontex(DroneAbstract):
             10, arcade.color.BLACK
         )
         """
-
-        arcade.draw_circle_outline(
-            self.state_command_pose.position[0] + self._half_size_array[0],
-            self.state_command_pose.position[1] + self._half_size_array[1],
-            10, arcade.color.VIOLET
-        )
-
-        arcade.draw_circle_outline(
-            self.command_pose.position[0] + self._half_size_array[0],
-            self.command_pose.position[1] + self._half_size_array[1],
-            10, arcade.color.BLUE
-        )
+        pass
 
     def draw_path(self, path):
         length = len(path)
