@@ -42,12 +42,12 @@ class CostmapGrid():
 
 class PathSimplifier:
     @staticmethod
-    def simplify(path, costmap):
+    def simplify(path, costmap, penalty_allowance=0.0):
         if path is None or len(path) <= 2:
             return path
 
         path = PathSimplifier._simplify_by_direction(path)
-        path = PathSimplifier._simplify_by_los(path, costmap)
+        path = PathSimplifier._simplify_by_los(path, costmap, penalty_allowance)
 
         return path
 
@@ -67,7 +67,7 @@ class PathSimplifier:
         return path[np.array(keep, dtype=int)]
     
     @staticmethod
-    def _simplify_by_los(path, costmap):
+    def _simplify_by_los(path, costmap, penalty_allowance):
         simplified = []
         i = 0
         n = len(path)
@@ -79,7 +79,7 @@ class PathSimplifier:
 
             j = n - 1
             while j > i + 1:
-                if PathSimplifier._has_los(path[i], path[j], costmap):
+                if PathSimplifier._has_los(path[i], path[j], costmap, penalty_allowance):
                     break
                 j -= 1
 
@@ -88,9 +88,9 @@ class PathSimplifier:
         return np.asarray(simplified, dtype=path.dtype)
 
     @staticmethod
-    def _has_los(a: np.ndarray, b: np.ndarray, costmap):
+    def _has_los(a: np.ndarray, b: np.ndarray, costmap, penalty_allowance):
         for r, c in bresenham(a, b):
-            if costmap[r, c] > PathPlanningParams.SHORTCUT_PENALTY_ALLOWANCE:
+            if costmap[r, c] > penalty_allowance:
                 return False
             
         return True
@@ -100,7 +100,7 @@ class PathPlanner:
         self.occupancy_grid = occupancy_grid
         self.costmap_grid = CostmapGrid(occupancy_grid)
 
-    def plan_path_to_target(self, start_pos: np.ndarray, target_pos: np.ndarray) -> Optional[List[np.ndarray]]:
+    def plan_path_to_target(self, start_pos: np.ndarray, target_pos: np.ndarray, holds_wounded = False) -> Optional[List[np.ndarray]]:
         """
         Computes the safest path from start_pos to target_pos.
         Returns the path as a list of positions, or None if unreachable.
@@ -114,7 +114,11 @@ class PathPlanner:
         self.costmap_grid.update()
 
         path = a_star(self.costmap_grid.costmap, start_cell, target_cell)
-        path = PathSimplifier.simplify(path, self.costmap_grid.costmap)
+
+        if holds_wounded:
+            path = PathSimplifier.simplify(path, self.costmap_grid.costmap, penalty_allowance=PathPlanningParams.CAUTION_PENALTY_ALLOWANCE)
+        else:
+            path = PathSimplifier.simplify(path, self.costmap_grid.costmap, penalty_allowance=PathPlanningParams.SHORTCUT_PENALTY_ALLOWANCE)
 
         world_path = [self.occupancy_grid._conv_grid_to_world(cell) for cell in path] if path.size > 0 else None
 

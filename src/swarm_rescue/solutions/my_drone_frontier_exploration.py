@@ -318,7 +318,7 @@ class MyDroneFrontex(DroneAbstract):
         start_pos = self.position
         target_pos = self.initial_position
 
-        path = self.path_planner.plan_path_to_target(start_pos, target_pos)
+        path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=True)
         self.path_controller.set_path(path, self.position)
     
     def assign_frontier(self):
@@ -359,7 +359,7 @@ class MyDroneFrontex(DroneAbstract):
             self.next_frontier_centroid = assigned_frontier.compute_centroid_pos()
             start_pos = self.position
             target_pos = self.next_frontier_centroid
-            path = self.path_planner.plan_path_to_target(start_pos, target_pos)
+            path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=False)
             if path is None:
                 print("Assigned frontier unreachable, deleting artifacts.")
                 self.grid.delete_frontier_artifacts(self.next_frontier)
