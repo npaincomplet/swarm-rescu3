@@ -1,4 +1,6 @@
 import numpy as np
+import cv2
+from solutions.components.astarv2 import a_star
 from typing import Optional, List
 from solutions.components.grids import *
 from solutions.utils.dataclasses_config import PathPlanningParams
@@ -28,12 +30,12 @@ class CostmapGrid():
         self.costmap += penalty
     
     def update(self):
-        self.costmap = np.zeros_like(self.occupancy_grid.grid, dtype=float)
+        self.costmap.fill(0.0)
 
         undiscovered_mask = self.occupancy_grid.undiscovered_mask()
         self.costmap[undiscovered_mask] = np.inf
 
-        self.inflate_obstacles()
+        self.inflate_obstacles(PathPlanningParams.BASE_PENALTY, PathPlanningParams.GRID_INFLATION_RADIUS)
 
 class PathPlanner:
     def __init__(self, occupancy_grid: OccupancyGrid):
@@ -45,11 +47,16 @@ class PathPlanner:
         Computes the safest path from start_pos to target_pos.
         Returns the path as a list of positions, or None if unreachable.
         """
+        # Needs nearest free cell logic
         start_cell = self.occupancy_grid._conv_world_to_grid(start_pos)
+        start_cell = self.occupancy_grid.find_nearest_free_cell(start_cell)
+
         target_cell = self.occupancy_grid._conv_world_to_grid(target_pos)
+        target_cell = self.occupancy_grid.find_nearest_free_cell(target_cell)
 
         self.costmap_grid.update()
 
-        path = []
+        path = a_star(self.costmap_grid.costmap, start_cell, target_cell)
+        world_path = [self.occupancy_grid._conv_grid_to_world(cell) for cell in path] if path.size > 0 else None
 
-        return path
+        return world_path

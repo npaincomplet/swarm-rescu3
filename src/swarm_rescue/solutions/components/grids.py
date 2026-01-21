@@ -421,7 +421,7 @@ class OccupancyGrid(Grid):
 
         start_cell = self._conv_world_to_grid(start_pos)
         target_cell = self._conv_world_to_grid(target_pos)
-        target_cell = self._find_nearest_free_cell(MAP, target_cell)
+        target_cell = self.find_nearest_free_cell(target_cell)
 
         start_x, start_y = start_cell
         end_x, end_y = target_cell
@@ -433,31 +433,20 @@ class OccupancyGrid(Grid):
         
         return None
     
-    def _find_nearest_free_cell(self, map_array, target_cell, max_radius=20):
-        """
-        Args:
-            map_array: Ternary map representation
-            target_cell: Target cell coordinates [x, y]
-            max_radius: Maximum search radius
-            
-        Returns:
-            numpy.ndarray: Array of [x, y] coordinates representing nearest free cell, or None if not found
-        """
-        # Expand radius until a free cell is found or max_radius is reached
-        for r in range(0, max_radius + 1):  # r=0 is the target cell itself
+    def find_nearest_free_cell(self, target_cell, max_radius=20):
+        perimeter_cells = []
+
+        for r in range(max_radius + 1):
             for dx in range(-r, r + 1):
-                for dy in (-r,r):
-                    possible_cell = target_cell + np.array([dx, dy])
-                    if self.cell_in_bounds(possible_cell):
-                        if map_array[tuple(possible_cell)] == self.FREE:
-                            return possible_cell
-                        
-            for dy in range(-r, r + 1):
-                for dx in (-r,r):
-                    possible_cell = target_cell + np.array([dx, dy])
-                    if self.cell_in_bounds(possible_cell):
-                        if map_array[tuple(possible_cell)] == self.FREE:
-                            return possible_cell
+                perimeter_cells.append(target_cell + np.array([dx, -r]))
+                perimeter_cells.append(target_cell + np.array([dx, r]))
+            for dy in range(-r + 1, r):
+                perimeter_cells.append(target_cell + np.array([-r, dy]))
+                perimeter_cells.append(target_cell + np.array([r, dy]))
+                
+            for cell in perimeter_cells:
+                if self.cell_in_bounds(cell) and self.is_free(self.grid[tuple(cell)]):
+                    return cell
         
         return None
 
@@ -468,6 +457,15 @@ class OccupancyGrid(Grid):
 
     def merge_grids(self, other_grid):
         self.grid = (self.grid + other_grid)/2
+    
+    def is_free(self, cell_value):
+        return cell_value < GridParams.FREE_THRESHOLD
+    
+    def is_obstacle(self, cell_value):
+        return cell_value > GridParams.OBSTACLE_THRESHOLD
+
+    def is_undiscovered(self, cell_value):
+        return GridParams.FREE_THRESHOLD <= cell_value <= GridParams.OBSTACLE_THRESHOLD
 
     def free_mask(self):
         return self.grid < GridParams.FREE_THRESHOLD
@@ -476,4 +474,4 @@ class OccupancyGrid(Grid):
         return self.grid > GridParams.OBSTACLE_THRESHOLD
     
     def undiscovered_mask(self):
-        return GridParams.FREE_THRESHOLD <= self.grid <= GridParams.OBSTACLE_THRESHOLD
+        return np.logical_and(GridParams.FREE_THRESHOLD <= self.grid, self.grid <= GridParams.OBSTACLE_THRESHOLD)
