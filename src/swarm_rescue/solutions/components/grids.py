@@ -468,3 +468,12 @@ class OccupancyGrid(Grid):
 
     def merge_grids(self, other_grid):
         self.grid = (self.grid + other_grid)/2
+
+    def free_mask(self):
+        return self.grid < GridParams.FREE_THRESHOLD
+
+    def obstacle_mask(self):
+        return self.grid > GridParams.OBSTACLE_THRESHOLD
+    
+    def undiscovered_mask(self):
+        return GridParams.FREE_THRESHOLD <= self.grid <= GridParams.OBSTACLE_THRESHOLD

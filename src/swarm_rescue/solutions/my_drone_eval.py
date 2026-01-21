@@ -1,4 +1,3 @@
-from swarm_rescue.solutions.my_drone_random import MyDroneRandom
 from swarm_rescue.solutions.my_drone_frontier_exploration import MyDroneFrontex
 
 

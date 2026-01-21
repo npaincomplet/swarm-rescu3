@@ -49,12 +49,23 @@ class PIDParams:
     KI_FORWARD: float = 0.0
 
 @dataclass
-class PathParams:
+class PathControlParams:
     DISTANCE_CLOSE_WAYPOINT: int = 20
     SPEED_CLOSE_WAYPOINT: float = 2.0
     MAX_INFLATION_OBSTACLE: float = 20.0
 
     MAX_ANGLE_ERROR: float = math.pi / 15
+
+@dataclass
+class PhysicalParams:
+    DRONE_RADIUS: float = 15.0
+
+@dataclass
+class PathPlanningParams:
+    WORLD_INFLATION_RADIUS: float = PhysicalParams.DRONE_RADIUS * 2   # pixels
+    GRID_INFLATION_RADIUS: int = int(WORLD_INFLATION_RADIUS / MappingParams.RESOLUTION) + 1
+
+    BASE_PENALTY: float = 100.0
 
 @dataclass
 class VisualisationParams:

@@ -9,6 +9,7 @@ from solutions.components.pose import *
 from solutions.components.astar import *
 from solutions.components.communication import *
 from solutions.components.grids import *
+from solutions.components.path_planner import *
 from solutions.utils.dataclasses_config import *
 from solutions.components.pid_controller import *
 from solutions.components.state_handlers import *
@@ -32,6 +33,7 @@ class MyDroneFrontex(DroneAbstract):
         
         # Initialize all drone systems
         self._init_mapping()
+        self._init_path_planning()
         self._init_communication()
         self._init_state_machine()
         self._init_state_params()
@@ -52,6 +54,9 @@ class MyDroneFrontex(DroneAbstract):
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
                                  lidar=self.lidar(), semantic=self.semantic())
+    
+    def _init_path_planning(self):
+        self.path_planner = PathPlanner(self.grid)
 
     def _init_communication(self):
         self.communication_params = CommunicationParams()
@@ -102,9 +107,9 @@ class MyDroneFrontex(DroneAbstract):
 
     def _init_path_following(self):
         self.initial_position = np.zeros(2) # temporary value, will be set at first mapping
-        self.path_params = PathParams()
+        self.path_control_params = PathControlParams()
         self.path_controller = PathController(
-            self.path_params,
+            self.path_control_params,
             self.rotation_pid,
             self.lateral_pid,
             self.forward_pid,
@@ -353,7 +358,6 @@ class MyDroneFrontex(DroneAbstract):
             self.next_frontier_centroid = assigned_frontier.compute_centroid_pos()
             start_pos = self.estimated_pose.position
             target_pos = self.next_frontier_centroid
-            max_inflation = self.path_params.MAX_INFLATION_OBSTACLE
             path = self.grid.compute_safest_path(start_pos, target_pos)
             if path is None:
                 print("Assigned frontier unreachable, deleting artifacts.")
