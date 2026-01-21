@@ -62,10 +62,11 @@ class PhysicalParams:
 
 @dataclass
 class PathPlanningParams:
-    WORLD_INFLATION_RADIUS: float = PhysicalParams.DRONE_RADIUS * 2   # pixels
-    GRID_INFLATION_RADIUS: int = int(WORLD_INFLATION_RADIUS / MappingParams.RESOLUTION) + 1
+    CONSTANT_COST: float = 1.0
+    WORLD_INFLATION_RADIUS: float = PhysicalParams.DRONE_RADIUS * 3   # pixels
+    GRID_INFLATION_RADIUS: int = int(WORLD_INFLATION_RADIUS / MappingParams.RESOLUTION)
 
-    BASE_PENALTY: float = 100.0
+    OBSTACLE_BASE_PENALTY: float = 10.0
 
 @dataclass
 class VisualisationParams:

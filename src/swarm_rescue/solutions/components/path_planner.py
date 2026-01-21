@@ -20,22 +20,24 @@ class CostmapGrid():
         """Set obstacles as np.inf and inflate them with decreasing penalty"""
         obstacle_mask = self.occupancy_grid.obstacle_mask()
 
-        dist_transform = cv2.distanceTransform(~obstacle_mask.astype(np.uint8), cv2.DIST_L2, 3)
+        free = (~obstacle_mask).astype(np.uint8)
+        dist = cv2.distanceTransform(free, cv2.DIST_L2, 3)
+
 
         # Decreasing penalty within cell_radius, zero beyond
-        penalty = np.where(dist_transform <= cell_radius, base_penalty / (dist_transform + 1), 0)
+        penalty = np.where(dist <= cell_radius, base_penalty / (dist + 0.01) ** 2, 0)
         
         self.costmap[obstacle_mask] = np.inf
         
         self.costmap += penalty
     
     def update(self):
-        self.costmap.fill(0.0)
+        self.costmap.fill(PathPlanningParams.CONSTANT_COST)
 
         undiscovered_mask = self.occupancy_grid.undiscovered_mask()
         self.costmap[undiscovered_mask] = np.inf
 
-        self.inflate_obstacles(PathPlanningParams.BASE_PENALTY, PathPlanningParams.GRID_INFLATION_RADIUS)
+        self.inflate_obstacles(PathPlanningParams.OBSTACLE_BASE_PENALTY, PathPlanningParams.GRID_INFLATION_RADIUS)
 
 class PathPlanner:
     def __init__(self, occupancy_grid: OccupancyGrid):
