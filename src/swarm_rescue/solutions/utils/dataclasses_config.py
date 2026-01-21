@@ -68,6 +68,8 @@ class PathPlanningParams:
 
     OBSTACLE_BASE_PENALTY: float = 10.0
 
+    SHORTCUT_PENALTY_ALLOWANCE: float = OBSTACLE_BASE_PENALTY / 3
+
 @dataclass
 class VisualisationParams:
     DRAW_POSITION: bool = True

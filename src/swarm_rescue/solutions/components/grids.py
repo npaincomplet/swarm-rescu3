@@ -410,50 +410,23 @@ class OccupancyGrid(Grid):
         if frontier is not None:
             for cell in frontier.cells:
                 self.grid[cell] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
-
-    def compute_safest_path(self, start_pos, target_pos):
-        """
-        Returns the path, if it exists, that joins drone's position to target_cell
-        If the target cell is not free, finds the nearest free cell and routes to that instead
-        start_cell, target_cell : GRID COORDINATES
-        """
-        MAP = self.to_ternary_map()
-
-        start_cell = self._conv_world_to_grid(start_pos)
-        target_cell = self._conv_world_to_grid(target_pos)
-        target_cell = self.find_nearest_free_cell(target_cell)
-
-        start_x, start_y = start_cell
-        end_x, end_y = target_cell
-        path = a_star_search(MAP, (start_x, start_y), (end_x, end_y))
-
-        if path:
-            path_simplified = self.simplify_path(path, MAP) or [start_cell]
-            return [np.array(self._conv_grid_to_world(np.array([x,y]))) for x, y in path_simplified]
-        
-        return None
     
-    def find_nearest_free_cell(self, target_cell, max_radius=20):
-        perimeter_cells = []
-
+    def _perimeter_cells(self, center, max_radius):
         for r in range(max_radius + 1):
             for dx in range(-r, r + 1):
-                perimeter_cells.append(target_cell + np.array([dx, -r]))
-                perimeter_cells.append(target_cell + np.array([dx, r]))
+                yield center + np.array([dx, -r])
+                yield center + np.array([dx,  r])
             for dy in range(-r + 1, r):
-                perimeter_cells.append(target_cell + np.array([-r, dy]))
-                perimeter_cells.append(target_cell + np.array([r, dy]))
-                
-            for cell in perimeter_cells:
-                if self.cell_in_bounds(cell) and self.is_free(self.grid[tuple(cell)]):
-                    return cell
-        
-        return None
+                yield center + np.array([-r, dy])
+                yield center + np.array([ r, dy])
 
-    def simplify_path(self, path, MAP):
-        path_simplified = simplify_collinear_points(path)
-        path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP)
-        return ramer_douglas_peucker(path_line_of_sight, 0.5)
+    def find_nearest_free_cell(self, target_cell, max_radius=20):
+        # _perimeter_cells is a generator function (yield)
+        for cell in self._perimeter_cells(target_cell, max_radius):
+            if self.cell_in_bounds(cell) and self.is_free(self.grid[tuple(cell)]):
+                return cell
+            
+        return None
 
     def merge_grids(self, other_grid):
         self.grid = (self.grid + other_grid)/2
