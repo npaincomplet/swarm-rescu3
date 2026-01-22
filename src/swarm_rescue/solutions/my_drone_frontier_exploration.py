@@ -47,10 +47,7 @@ class MyDroneFrontex(DroneAbstract):
     def _init_mapping(self):
         self.mapping_params = MappingParams()
         self.estimated_pose = Pose(size_area=self.size_area)
-        self.odometer_pose = OdometerPose(self)
-        self.kf_pose = KalmanFilterPose()
-        self.augmented_pose = AugmentedEKFLocalization()
-        self.test_pose = TestPose()
+        self.ekf_pose = EKFPose()
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
                                  lidar=self.lidar(), semantic=self.semantic())
@@ -126,9 +123,7 @@ class MyDroneFrontex(DroneAbstract):
             drone=self, 
             loc_methods={
                 "measured_gps": self.measured_gps_position,
-                "kf": lambda: self.kf_pose.position,
-                "augmented_ekf": lambda: self.augmented_pose.position,
-                "test_pose": lambda: self.test_pose.position
+                "ekf_pose": lambda: self.ekf_pose.position
             }
         )
 
@@ -277,34 +272,14 @@ class MyDroneFrontex(DroneAbstract):
         # Execute current state behavior
         if self.timestep_count == 1:
             true_initial_state = np.array([self.true_position()[0], self.true_position()[1], self.true_angle(), 0,0,0])
-            self.odometer_pose = OdometerPose(self)
             initial_state = np.array([self.measured_gps_position()[0],self.measured_gps_position()[1], self.measured_compass_angle(),0,0,0])
-            self.augmented_pose = AugmentedEKFLocalization(initial_state=initial_state)
-            self.test_pose = TestPose(initial_state=initial_state)
+            self.ekf_pose = EKFPose(initial_state=initial_state)
 
         command = self.state_machine.handle_current_state()
 
         ### Command should be computed after position is updated (as is done for estimated_pose in mapping method)
 
-        self.odometer_pose.update(
-            gps_position=self.measured_gps_position(),
-            compass_angle=self.measured_compass_angle(),
-            odometer_values=self.odometer_values()
-        )
-
-        self.kf_pose.update(
-            gps_position=self.measured_gps_position(),
-            compass_angle=self.measured_compass_angle(),
-            odometer_values=self.odometer_values()
-        )
-
-        self.augmented_pose.step(
-            odometer_values=self.odometer_values(),
-            gps_position=self.measured_gps_position(),
-            compass_angle=self.measured_compass_angle()
-        )
-
-        self.test_pose.step(
+        self.ekf_pose.step(
             odometer_values=self.odometer_values(),
             gps_position=self.measured_gps_position(),
             compass_angle=self.measured_compass_angle()
@@ -466,7 +441,6 @@ class MyDroneFrontex(DroneAbstract):
         arcade.draw_circle_filled(point[0], point[1], 5, color)
 
     def draw_position(self):
-        """
         arcade.draw_circle_outline(
             self.estimated_pose.position[0] + self._half_size_array[0],
             self.estimated_pose.position[1] + self._half_size_array[1],
@@ -474,18 +448,10 @@ class MyDroneFrontex(DroneAbstract):
         )
 
         arcade.draw_circle_outline(
-            self.kf_pose.position[0] + self._half_size_array[0],
-            self.kf_pose.position[1] + self._half_size_array[1],
-            10, arcade.color.GREEN
+            self.ekf_pose.position[0] + self._half_size_array[0],
+            self.ekf_pose.position[1] + self._half_size_array[1],
+            10, arcade.color.BLUE
         )
-
-        arcade.draw_circle_outline(
-            self.augmented_pose.position[0] + self._half_size_array[0],
-            self.augmented_pose.position[1] + self._half_size_array[1],
-            10, arcade.color.BLACK
-        )
-        """
-        pass
 
     def draw_path(self, path):
         length = len(path)
