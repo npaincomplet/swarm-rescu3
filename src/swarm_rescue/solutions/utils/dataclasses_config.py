@@ -72,7 +72,7 @@ class PathPlanningParams:
     SHORTCUT_PENALTY_ALLOWANCE: float = OBSTACLE_BASE_PENALTY / 4
 
 @dataclass
-class VisualisationParams:
+class VisualizationParams:
     DRAW_POSITION: bool = True
     DRAW_PATH: bool = True
     DRAW_FRONTIER_CENTROID: bool = True

@@ -1,6 +1,5 @@
 from typing import Optional
 import numpy as np
-import arcade
 
 from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.utils.misc_data import MiscData
@@ -17,6 +16,7 @@ from solutions.components.state_machine import *
 from solutions.components.path_controller import *
 from solutions.components.sensor_manager import SensorManager
 from solutions.components.health_manager import HealthManager
+from solutions.components.visualization_drawer import VisualizationDrawer
 from solutions.utils.data_serializer import PositionTracker
 
 from scipy.optimize import linear_sum_assignment
@@ -128,7 +128,10 @@ class MyDroneFrontex(DroneAbstract):
         )
 
     def _init_visualization(self):
-        self.visualisation_params = VisualisationParams()
+        self.visualization_drawer = VisualizationDrawer(
+            half_size_array=self._half_size_array,
+            conv_grid_to_world=self.grid._conv_grid_to_world
+        )
 
     def _init_misc(self):
         self.health_manager = HealthManager(self)
@@ -267,7 +270,7 @@ class MyDroneFrontex(DroneAbstract):
             self.previous_state != DroneState.WAITING):
             self.step_waiting_count = 0
 
-        self.visualise_actions()
+        self.draw_top_layer()
 
         # Execute current state behavior
         if self.timestep_count == 1:
@@ -437,52 +440,12 @@ class MyDroneFrontex(DroneAbstract):
             # Clear the buffer
             self.log_buffer.clear()
 
-    def draw_point(self,point, color=arcade.color.GO_GREEN):
-        arcade.draw_circle_filled(point[0], point[1], 5, color)
-
-    def draw_position(self):
-        arcade.draw_circle_outline(
-            self.estimated_pose.position[0] + self._half_size_array[0],
-            self.estimated_pose.position[1] + self._half_size_array[1],
-            10, arcade.color.RED
-        )
-
-        arcade.draw_circle_outline(
-            self.ekf_pose.position[0] + self._half_size_array[0],
-            self.ekf_pose.position[1] + self._half_size_array[1],
-            10, arcade.color.BLUE
-        )
-
-    def draw_path(self, path):
-        length = len(path)
-        pt2 = None
-        for ind_pt in range(length):
-            pose = path[ind_pt]
-            pt1 = pose + self._half_size_array
-            if ind_pt > 0:
-                arcade.draw_line(float(pt2[0]),
-                                 float(pt2[1]),
-                                 float(pt1[0]),
-                                 float(pt1[1]), [125,125,125])
-            pt2 = pt1
-
     def draw_top_layer(self):
-        if self.visualisation_params.DRAW_PATH:
-            self.draw_path(self.path_controller.path)
-        
-        if self.visualisation_params.DRAW_POSITION:
-            self.draw_position()
-
-        if self.current_state == DroneState.EXPLORING_FRONTIERS:
-            if self.visualisation_params.DRAW_FRONTIER_CENTROID and self.next_frontier_centroid is not None:
-                self.draw_point(self.next_frontier_centroid + self._half_size_array)     # frame of reference change
-            
-            if self.visualisation_params.DRAW_FRONTIER_POINTS and self.next_frontier is not None:
-                for point in self.next_frontier.cells:
-                    self.draw_point(self.grid._conv_grid_to_world(*point) + self._half_size_array, color=arcade.color.AIR_FORCE_BLUE)     # frame of reference change
-
-    def visualise_actions(self):
-        """
-        It's mandatory to use draw_top_layer to draw anything on the interface
-        """
-        self.draw_top_layer()
+        return self.visualization_drawer.draw_top_layer(
+            self.path,
+            self.estimated_pose,
+            self.ekf_pose,
+            self.current_state,
+            self.next_frontier_centroid,
+            self.next_frontier
+        )
