@@ -306,7 +306,7 @@ class MyDroneFrontex(DroneAbstract):
             return None
 
         # Collect known drone positions (self and others)
-        drone_positions = [self.estimated_pose.position]    # index 0 is self
+        drone_positions = [self.position]    # index 0 is self
         for _, pos in self.other_drones_pos:
             drone_positions.append(pos)
 
@@ -339,7 +339,7 @@ class MyDroneFrontex(DroneAbstract):
                 print("Assigned frontier unreachable, deleting artifacts.")
                 self.grid.delete_frontier_artifacts(self.next_frontier)
             else:
-                self.path_controller.set_path(path, self.estimated_pose.position)
+                self.path_controller.set_path(path, self.position)
 
         else:
             self.explored_all_frontiers = True
@@ -351,7 +351,7 @@ class MyDroneFrontex(DroneAbstract):
         """
 
         for _,broadcast_loc in self.wounded_locked :
-            distance = np.linalg.norm(np.array(self.estimated_pose.position) - np.array(broadcast_loc))
+            distance = np.linalg.norm(np.array(self.position) - np.array(broadcast_loc))
             if distance < threshold:
                 print("Near a rescuing drone")
                 return True
@@ -359,7 +359,7 @@ class MyDroneFrontex(DroneAbstract):
 
     def follow_path(self, found_and_near_wounded):
         return self.path_controller.follow_path(
-            self.estimated_pose.position,
+            self.position,
             self.estimated_pose.orientation,
             self.odometer_values(),
             self.lidar().get_sensor_values(),
