@@ -46,7 +46,7 @@ class SimplePoseEstimator(PoseEstimator):
     
     @property
     def position(self) -> np.ndarray:
-        return self._position
+        return self._position.copy()
     
     @property
     def orientation(self) -> float:

@@ -48,8 +48,8 @@ class MyDroneFrontex(DroneAbstract):
         self.mapping_params = MappingParams()
 
         self.pose_estimator_manager = PoseEstimatorManager()
-        self.pose_estimator_manager.add("simple", SimplePoseEstimator(size_area=self.size_area), active=True)
-        self.pose_estimator_manager.add("ekf", EKFPoseEstimator(), active=False)
+        self.pose_estimator_manager.add("simple", SimplePoseEstimator(size_area=self.size_area), active=False)
+        self.pose_estimator_manager.add("ekf", EKFPoseEstimator(), active=True)
 
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
@@ -109,7 +109,7 @@ class MyDroneFrontex(DroneAbstract):
         )
 
     def _init_path_following(self):
-        self.initial_position = np.zeros(2) # temporary value, will be set at first mapping
+        self.initial_position = None
         self.path_control_params = PathControlParams()
         self.path_controller = PathController(
             self.path_control_params,
@@ -213,7 +213,7 @@ class MyDroneFrontex(DroneAbstract):
     @property
     def position(self):
         """World position"""
-        return self.active_pose_estimator.position
+        return self.active_pose_estimator.position.copy()
     
     @property
     def orientation(self):
@@ -369,6 +369,9 @@ class MyDroneFrontex(DroneAbstract):
             command={},
             messages=[]
         )
+
+        if self.initial_position is None:
+            self.initial_position = self.position
     
     def mapping(self, display = False):
         
