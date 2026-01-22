@@ -21,6 +21,9 @@ class DroneState(ABC):
 
 
 class WaitingState(DroneState):
+    def on_enter(self):
+        self.drone.step_waiting_count = 0
+
     def handle(self):
         self.drone.step_waiting_count += 1
         return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}

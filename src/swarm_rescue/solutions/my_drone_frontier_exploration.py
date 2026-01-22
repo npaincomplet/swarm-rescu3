@@ -268,11 +268,6 @@ class MyDroneFrontex(DroneAbstract):
 
         self.misc_management()
 
-        # Reset waiting count if entering waiting state
-        if (self.current_state == DroneState.WAITING and 
-            self.previous_state != DroneState.WAITING):
-            self.step_waiting_count = 0
-
         self.draw_top_layer()
 
         # Execute current state behavior
