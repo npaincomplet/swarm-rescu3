@@ -33,7 +33,7 @@ class SearchingWallState(DroneState):
 
 class FollowingWallState(DroneState):
     def handle(self):
-        epsilon_wall_distance = self.drone.min_dist_wall - self.drone.DIST_TO_STAY
+        epsilon_wall_distance = self.drone.min_dist_wall - self.drone.wall_following_params.DIST_TO_STAY
 
         self.drone.logging_variables({
             "epsilon_wall_angle": self.drone.epsilon_wall_angle, 

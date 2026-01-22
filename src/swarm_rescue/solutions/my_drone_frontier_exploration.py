@@ -75,6 +75,9 @@ class MyDroneFrontex(DroneAbstract):
         self.next_frontier = None
         self.next_frontier_centroid = None
 
+        # Wall following
+        self.wall_following_params = WallFollowingParams()
+
     def _init_sensors(self):
         self.sensor_manager = SensorManager()
 
@@ -411,7 +414,7 @@ class MyDroneFrontex(DroneAbstract):
         :param variables_to_log: dict of variables to log with keys as variable names 
                                 and values as variable values.
         """
-        if not self.log_params.record_log:
+        if not self.log_params.RECORD_LOG:
             return
 
         # Initialize the log buffer if not already done
