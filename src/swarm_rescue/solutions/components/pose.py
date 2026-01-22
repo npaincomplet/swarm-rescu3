@@ -104,20 +104,14 @@ class EKFPoseEstimator(PoseEstimator):
         pos = lok.position; theta = lok.orientation
     """
 
-    def __init__(self, loc_params=LocalizationParams, initial_state: Optional[np.ndarray] = None):
+    def __init__(self, loc_params=LocalizationParams):
         self.loc = loc_params
-        # AR(1) parameter
         self.alpha_ar = float(self.loc.ALPHA_AR1)
+        self.nx = 6     # state dimension
 
-        # State dimension
-        self.nx = 6
-
-        # Initialize state: default zeros (can be overridden)
-        if initial_state is None:
-            self.x = np.zeros(self.nx, dtype=float)
-        else:
-            assert initial_state.shape == (self.nx,)
-            self.x = initial_state.astype(float)
+        # The GPS and compass are not available at initialization
+        self.x = np.zeros(self.nx, dtype=float)
+        self.initialized = False
 
         # Measurement covariance for the *observed* measurements (will be used in update)
         # These represent the *stationary* variances of GPS and compass measurement noise.
@@ -139,22 +133,29 @@ class EKFPoseEstimator(PoseEstimator):
         # but keep odom Q and AR innovations available
         self.Q_odom = Q_odom
         self.Q_ar_innov = np.diag([q_g, q_g, q_c])
-
-        # Initial covariance: conservative, seed with some moderate uncertainty
-        # Put larger uncertainty on pose if initial unknown.
-        # Use measurement stationary variances for noise states (so P[3:6,3:6] ~= Var(n))
+        
+        # Small regularization for numerical stability
+        self._eps = 1e-9
+    
+    def _lazy_init(self, gps_position: np.ndarray, compass_angle: float) -> None:
+        """Initialize state from first valid GPS/compass readings."""
+        self.x = np.array([
+            gps_position[0], gps_position[1], compass_angle,
+            0.0, 0.0, 0.0
+        ])
+        
+        # Reset covariance with appropriate initial uncertainty
         P = np.zeros((self.nx, self.nx), dtype=float)
         pose_unc = max(1.0, self.loc.GPS_NOISE_STD)
         P[0, 0] = pose_unc ** 2
         P[1, 1] = pose_unc ** 2
         P[2, 2] = (2.0 * self.loc.COMPASS_NOISE_STD) ** 2
-        P[3, 3] = self.loc.GPS_NOISE_STD ** 2   # var(n_gx)
-        P[4, 4] = self.loc.GPS_NOISE_STD ** 2   # var(n_gy)
+        P[3, 3] = self.loc.GPS_NOISE_STD ** 2
+        P[4, 4] = self.loc.GPS_NOISE_STD ** 2
         P[5, 5] = self.loc.COMPASS_NOISE_STD ** 2
         self.P = P
-
-        # Small regularization for numerical stability
-        self._eps = 1e-9
+        
+        self.initialized = True
 
     @property
     def position(self) -> np.ndarray:
@@ -173,6 +174,9 @@ class EKFPoseEstimator(PoseEstimator):
         """
         Perform one EKF step: predict (if odom given) and update (if measurements given).
         """
+        if not self.initialized:
+            self._lazy_init(gps_position, compass_angle)
+
         if odometer_values is not None:
             self.predict(odometer_values)
 
