@@ -46,7 +46,7 @@ class MyDroneFrontex(DroneAbstract):
 
     def _init_mapping(self):
         self.mapping_params = MappingParams()
-        self.estimated_pose = Pose(size_area=self.size_area)
+        self.estimated_pose = SimplePose(size_area=self.size_area)
         self.ekf_pose = EKFPose()
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
@@ -285,10 +285,10 @@ class MyDroneFrontex(DroneAbstract):
 
         ### Command should be computed after position is updated (as is done for estimated_pose in mapping method)
 
-        self.ekf_pose.step(
-            odometer_values=self.odometer_values(),
+        self.ekf_pose.update(
             gps_position=self.measured_gps_position(),
-            compass_angle=self.measured_compass_angle()
+            compass_angle=self.measured_compass_angle(),
+            odometer_values=self.odometer_values()
         )
 
         self.logging_management()
