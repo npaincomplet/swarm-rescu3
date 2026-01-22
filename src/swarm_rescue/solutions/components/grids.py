@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from swarm_rescue.simulation.utils.constants import MAX_RANGE_LIDAR_SENSOR
-from solutions.components.pose import Pose
+from solutions.components.pose import PoseEstimator
 from solutions.components.astar import *
 from solutions.utils.dataclasses_config import *
 
@@ -176,7 +176,7 @@ class Grid:
                 self.grid[x_indices, y_indices] += val
 
     def display(self, grid_to_display: np.ndarray,
-                robot_pose: Pose, title="grid"):
+                robot_pose: PoseEstimator, title="grid"):
         """
         Screen display of grid and robot pose,
         using opencv (faster than the matplotlib version)
@@ -267,7 +267,7 @@ class OccupancyGrid(Grid):
         ternary_map[self.grid == 0] = self.UNDISCOVERED
         return ternary_map
     
-    def update(self, pose: Pose):
+    def update(self, pose: PoseEstimator):
         """
         Updates the occupancy grid using ray casting algorithm with lidar data.
         Sensor noise : Gaussian(m=0, s=2.5)
@@ -283,7 +283,7 @@ class OccupancyGrid(Grid):
         
         self._update_zoomed_grid()
 
-    def _update_free_space(self, pose):
+    def _update_free_space(self, pose: PoseEstimator):
         # Sample lidar data at regular intervals
         lidar_dist = self.lidar.get_sensor_values()[::self.grid_params.EVERY_N].copy()
         lidar_angles = self.lidar.ray_angles[::self.grid_params.EVERY_N].copy()
@@ -310,7 +310,7 @@ class OccupancyGrid(Grid):
                 print(lidar_dist[np.where((ray_confidence_endpoints == ray_endpoint).all(axis=1))[0][0]])
             self.add_value_along_line(pose.position, ray_endpoint, self.grid_params.EMPTY_ZONE_VALUE)
 
-    def _update_obstacles(self, pose):
+    def _update_obstacles(self, pose: PoseEstimator):
         # Sample lidar data at regular intervals
         lidar_dist = self.lidar.get_sensor_values()[::self.grid_params.EVERY_N].copy()
         lidar_angles = self.lidar.ray_angles[::self.grid_params.EVERY_N].copy()

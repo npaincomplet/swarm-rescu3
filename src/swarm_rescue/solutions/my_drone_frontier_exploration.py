@@ -46,8 +46,11 @@ class MyDroneFrontex(DroneAbstract):
 
     def _init_mapping(self):
         self.mapping_params = MappingParams()
-        self.estimated_pose = SimplePose(size_area=self.size_area)
-        self.ekf_pose = EKFPose()
+
+        self.pose_estimator_manager = PoseEstimatorManager()
+        self.pose_estimator_manager.add("simple", SimplePoseEstimator(size_area=self.size_area), active=True)
+        self.pose_estimator_manager.add("ekf", EKFPoseEstimator(), active=False)
+
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
                                  lidar=self.lidar(), semantic=self.semantic())
@@ -126,7 +129,7 @@ class MyDroneFrontex(DroneAbstract):
             drone=self, 
             loc_methods={
                 "measured_gps": self.measured_gps_position,
-                "ekf_pose": lambda: self.ekf_pose.position
+                "ekf_pose": lambda: self.pose_estimator_manager.estimators["ekf"].position
             }
         )
 
@@ -204,16 +207,24 @@ class MyDroneFrontex(DroneAbstract):
         return self.path_controller.path
     
     # Property to access cinetic values
+
+    @property
+    def active_pose_estimator(self):
+        return self.pose_estimator_manager.active
+    
+    @property
+    def estimated_pose(self):
+        return self.active_pose_estimator
     
     @property
     def position(self):
         """World position"""
-        return self.estimated_pose.position
+        return self.active_pose_estimator.position
     
     @property
     def orientation(self):
-        return self.estimated_pose.orientation
-    
+        return self.active_pose_estimator.orientation
+
     def reset_path_params(self):
         self.path_controller.reset_path()
     
@@ -258,7 +269,7 @@ class MyDroneFrontex(DroneAbstract):
         ray_angles = self.lidar().ray_angles
         semantic_values = self.semantic_values()
         self.sensor_manager.process_sensors(lidar_values, ray_angles, 
-                                            semantic_values, 
+                                            semantic_values,
                                             self.estimated_pose, 
                                             self.wounded_locked)
 
@@ -271,20 +282,8 @@ class MyDroneFrontex(DroneAbstract):
         self.draw_top_layer()
 
         # Execute current state behavior
-        if self.timestep_count == 1:
-            true_initial_state = np.array([self.true_position()[0], self.true_position()[1], self.true_angle(), 0,0,0])
-            initial_state = np.array([self.measured_gps_position()[0],self.measured_gps_position()[1], self.measured_compass_angle(),0,0,0])
-            self.ekf_pose = EKFPose(initial_state=initial_state)
 
         command = self.state_machine.handle_current_state()
-
-        ### Command should be computed after position is updated (as is done for estimated_pose in mapping method)
-
-        self.ekf_pose.update(
-            gps_position=self.measured_gps_position(),
-            compass_angle=self.measured_compass_angle(),
-            odometer_values=self.odometer_values()
-        )
 
         self.logging_management()
 
@@ -369,10 +368,12 @@ class MyDroneFrontex(DroneAbstract):
         )
     
     def position_update(self):
-        self.estimated_pose.update(
+        self.pose_estimator_manager.update_all(
             gps_position=self.measured_gps_position(),
             compass_angle=self.measured_compass_angle(),
-            odometer_values=self.odometer_values()
+            odometer_values=self.odometer_values(),
+            command={},
+            messages=[]
         )
     
     def mapping(self, display = False):
@@ -385,12 +386,6 @@ class MyDroneFrontex(DroneAbstract):
              self.grid.display(self.grid.zoomed_grid,
                                self.estimated_pose,
                                title=f"Drone {self.identifier} zoomed occupancy grid")
-        
-        if self.timestep_count == 1: # first iterations
-            print("Starting control")
-            start_x, start_y = self.measured_gps_position() # never none ? 
-            print(f"Initial position: {start_x}, {start_y}")
-            self.initial_position = self.position
 
     def misc_management(self):
         self.health_manager.update()
@@ -441,8 +436,7 @@ class MyDroneFrontex(DroneAbstract):
     def draw_top_layer(self):
         return self.visualization_drawer.draw_top_layer(
             self.path,
-            self.estimated_pose,
-            self.ekf_pose,
+            self.pose_estimator_manager,
             self.current_state,
             self.next_frontier_centroid,
             self.next_frontier

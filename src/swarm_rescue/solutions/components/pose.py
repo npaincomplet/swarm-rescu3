@@ -1,10 +1,10 @@
 import abc
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 import numpy as np
 from swarm_rescue.simulation.utils.utils import normalize_angle
 from solutions.utils.dataclasses_config import *
 
-class Pose(abc.ABC):
+class PoseEstimator(abc.ABC):
     """
     Abstract base class for pose estimation.
     Subclasses must implement the update method and position/orientation properties.
@@ -35,7 +35,7 @@ class Pose(abc.ABC):
         """
         pass
 
-class SimplePose(Pose):
+class SimplePoseEstimator(PoseEstimator):
     """
     Simple pose estimation using GPS and dead reckoning.
     """
@@ -83,7 +83,7 @@ class SimplePose(Pose):
         self._position[0] += np.cos(move_angle) * odometer_values[0]
         self._position[1] += np.sin(move_angle) * odometer_values[0]
 
-class EKFPose(Pose):
+class EKFPoseEstimator(PoseEstimator):
     """
     Augmented EKF for 2D pose with AR(1) GPS + compass noise.
     State vector (6):
@@ -342,3 +342,39 @@ class EKFPose(Pose):
 
     def get_covariance(self) -> np.ndarray:
         return self.P.copy()
+
+class PoseEstimatorManager:
+    estimators: Dict[str, PoseEstimator]
+    active_name: str
+
+    def __init__(self):
+        self.estimators = {}
+        self.active_name = None
+
+    def add(self, name: str, estimator: PoseEstimator, active: bool = False) -> None:
+        self.estimators[name] = estimator
+        if active or not self.active_name:
+            self.active_name = name
+
+    def set_active(self, name: str) -> None:
+        if name in self.estimators:
+            self.active_name = name
+
+    @property
+    def active(self) -> Optional[PoseEstimator]:
+        return self.estimators.get(self.active_name)
+
+    def update_all(self,
+                   gps_position: Optional[np.ndarray] = None,
+                   compass_angle: Optional[float] = None,
+                   odometer_values: Optional[np.ndarray] = None,
+                   command: Optional[dict] = None,
+                   messages: Optional[list] = None) -> None:
+        for estimator in self.estimators.values():
+            estimator.update(
+                gps_position=gps_position,
+                compass_angle=compass_angle,
+                odometer_values=odometer_values,
+                command=command,
+                messages=messages
+            )
