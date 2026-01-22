@@ -125,13 +125,7 @@ class MyDroneFrontex(DroneAbstract):
         self.log_initialized = False
         self.log_buffer = []
 
-        self.position_tracker = PositionTracker(
-            drone=self, 
-            loc_methods={
-                "measured_gps": self.measured_gps_position,
-                "ekf_pose": lambda: self.pose_estimator_manager.estimators["ekf"].position
-            }
-        )
+        self.position_tracker = PositionTracker(self.pose_estimator_manager)
 
     def _init_visualization(self):
         self.visualization_drawer = VisualizationDrawer(
@@ -391,7 +385,9 @@ class MyDroneFrontex(DroneAbstract):
         self.health_manager.update()
 
     def logging_management(self):
-        self.position_tracker.update()
+        # true_position used only for logging purpose
+        self.position_tracker.update(self.true_position())
+        
         if self.timestep_count == 500:
             self.position_tracker.export_performance_metrics()
 
