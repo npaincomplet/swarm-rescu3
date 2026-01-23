@@ -192,7 +192,7 @@ class MapEditor:
             f.write("\"\"\"\n\n")
 
             # Imports
-            f.write("from spg_overlay.entities.normal_wall import NormalWall, NormalBox\n\n")
+            f.write("from swarm_rescue.simulation.elements.normal_wall import NormalWall, NormalBox\n\n")
 
             # Body
             width , height = self.canvas.winfo_width() , self.canvas.winfo_height()
@@ -232,7 +232,7 @@ class MapEditor:
     def generate_python_map_code(self, map_name, file_path):
         with open(file_path, "w") as f:
             # Header
-            with open("snippets/map_files_header.txt", "r") as header:
+            with open("map_files_header.txt", "r") as header:
                 f.write(header.read())
                 f.write("\n\n")
             f.write(f"from map_editor.walls_{map_name} import add_walls, add_boxes, dimensions\n\n\n")
@@ -241,12 +241,13 @@ class MapEditor:
 
             # Configs
             f.write(f"class MyMap{map_name}(MapAbstract):\n\n")
-            f.write(f"    def __init__(self, zones_config: ZonesConfig = ()):\n")
-            f.write(f"        super().__init__(zones_config)\n")
+            f.write(f"    def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):\n")
+            f.write(f"        super().__init__(drone_type=drone_type, zones_config=zones_config)\n")
             f.write(f"        self._max_timestep_limit = 2000\n")
             f.write(f"        self._max_walltime_limit = 120\n\n")
             f.write(f"        # PARAMETERS MAP\n")
-            f.write(f"        self._size_area = dimensions()\n\n")
+            f.write(f"        self._size_area = dimensions()\n")
+            f.write(f"        self._playground = ClosedPlayground(size=self._size_area)\n\n")
 
             # Zones
             dic_attribute = {"return":"_return_area" , "rescue" : "_rescue_center" , "no_com" : "_no_com_zone" , "no_gps" : "_no_gps_zone" , "killing" : "_kill_zone" }
@@ -288,15 +289,48 @@ class MapEditor:
             f.write(f"        self._number_drones = len(self._drones_pos)\n")
             f.write(f"        self._drones: List[DroneAbstract] = []\n\n")
 
-            # Footer
-            with open("snippets/map_files_footer.txt", "r") as footer:
-                f.write(footer.read())
-                f.write("\n")
+            # Construction Logic (Moved from footer to __init__)
+            f.write(f"        # BUILD PLAYGROUND\n")
+            f.write(f"        self._playground.add(self._return_area, self._return_area_pos)\n")
+            f.write(f"        self._playground.add(self._rescue_center, self._rescue_center_pos)\n\n")
+            
+            f.write(f"        add_walls(self._playground)\n")
+            f.write(f"        add_boxes(self._playground)\n\n")
+            
+            f.write(f"        self._explored_map.initialize_walls(self._playground)\n\n")
 
-            f.write(f"        my_map = MyMap{map_name}()\n")
-            f.write(f"        my_playground = my_map.construct_playground(drone_type=DroneMotionless)\n\n")
-            f.write(f"        gui = GuiSR(playground=my_playground, the_map=my_map, use_mouse_measure=True)\n")
-            f.write(f"        gui.run()")
+            f.write(f"        # DISABLER ZONES\n")
+            f.write(f"        if ZoneType.NO_COM_ZONE in self._zones_config:\n")
+            f.write(f"            self._playground.add(self._no_com_zone, self._no_com_zone_pos)\n\n")
+            f.write(f"        if ZoneType.NO_GPS_ZONE in self._zones_config:\n")
+            f.write(f"            self._playground.add(self._no_gps_zone, self._no_gps_zone_pos)\n\n")
+            f.write(f"        if ZoneType.KILL_ZONE in self._zones_config:\n")
+            f.write(f"            self._playground.add(self._kill_zone, self._kill_zone_pos)\n\n")
+
+            f.write(f"        # POSITIONS OF THE WOUNDED PERSONS\n")
+            f.write(f"        for i in range(self._number_wounded_persons):\n")
+            f.write(f"            wounded_person = WoundedPerson(rescue_center=self._rescue_center)\n")
+            f.write(f"            self._wounded_persons.append(wounded_person)\n")
+            f.write(f"            pos = (self._wounded_persons_pos[i], 0)\n")
+            f.write(f"            self._playground.add(wounded_person, pos)\n\n")
+
+            f.write(f"        # POSITIONS OF THE DRONES\n")
+            f.write(f"        misc_data = MiscData(size_area=self._size_area,\n")
+            f.write(f"                             number_drones=self._number_drones,\n")
+            f.write(f"                             max_timestep_limit=self._max_timestep_limit,\n")
+            f.write(f"                             max_walltime_limit=self._max_walltime_limit)\n")
+            f.write(f"        for i in range(self._number_drones):\n")
+            f.write(f"            drone = drone_type(identifier=i, misc_data=misc_data)\n")
+            f.write(f"            self._drones.append(drone)\n")
+            f.write(f"            self._playground.add(drone, self._drones_pos[i])\n\n")
+
+            # Main execution block
+            f.write(f"def main():\n")
+            f.write(f"    the_map = MyMap{map_name}(drone_type=DroneMotionless)\n")
+            f.write(f"    gui = GuiSR(the_map=the_map, use_mouse_measure=True)\n")
+            f.write(f"    gui.run()\n\n")
+            f.write(f"if __name__ == '__main__':\n")
+            f.write(f"    main()\n")
 
     def on_canvas_click(self, event):
         if self.current_tool == "erase":
