@@ -1,12 +1,10 @@
-from typing import Tuple, Optional, Dict
+from typing import Optional
 import numpy as np
+import math
 from swarm_rescue.simulation.utils.utils import normalize_angle
-from simulation.drone.drone_base import DroneBase
-from solutions.utils.dataclasses_config import LocalizationParams
 from solutions.components.pose import PoseEstimator
-import pymunk
-from simulation.utils.definitions import SPACE_DAMPING, SIMULATION_STEPS, ANGULAR_VELOCITY
-from simulation.utils.constants import ANGULAR_SPEED_RATIO
+from simulation.utils.definitions import SPACE_DAMPING, PYMUNK_STEPS, ANGULAR_VELOCITY, LINEAR_FORCE
+from simulation.utils.constants import ANGULAR_SPEED_RATIO, LINEAR_SPEED_RATIO
 
 
 class CommandPoseEstimator(PoseEstimator):
@@ -21,11 +19,14 @@ class CommandPoseEstimator(PoseEstimator):
         self._angle = 0.0
 
         self.angular_ratio = ANGULAR_VELOCITY * ANGULAR_SPEED_RATIO
+        self.linear_ratio = LINEAR_FORCE * LINEAR_SPEED_RATIO
+        self._mass = 50.0 * 11.75
 
     def _lazy_init(self) -> None:
         """Initialize state from first valid GPS/compass readings."""
         self._position = self.drone.true_position().copy()
         self._angle = self.drone.true_angle()
+        self._velocity = np.zeros(2)
 
         self.initialized = True
     
@@ -47,13 +48,49 @@ class CommandPoseEstimator(PoseEstimator):
             self._lazy_init()
             return
         
+        # Angular setup
         angular_velocity = command["rotation"] * self.angular_ratio
-        dt = 1 / SIMULATION_STEPS
-        for _ in range(SIMULATION_STEPS):
+
+        # Linear setup
+        # Commands translate to Forces (F = command * ratio)
+        cmd_forward = command["forward"]
+        cmd_lateral = command["lateral"]
+        sqr_norm = cmd_forward ** 2 + cmd_lateral ** 2
+        if sqr_norm > 1.0:
+            norm = math.sqrt(sqr_norm)
+            cmd_forward = cmd_forward / norm
+            cmd_lateral = cmd_lateral / norm
+
+        forward_force = command["forward"] * self.linear_ratio
+        lateral_force = command["lateral"] * self.linear_ratio
+
+        dt = 1 / PYMUNK_STEPS
+        damping_factor = SPACE_DAMPING ** dt
+
+        for _ in range(PYMUNK_STEPS):
+            # 1. Rotate local force to global frame using current angle
+            # Calculate force first using the current orientation
+            c, s = np.cos(self._angle), np.sin(self._angle)
+            fx = forward_force * c - lateral_force * s
+            fy = forward_force * s + lateral_force * c
+            
+            # Update Angle
             self._angle += angular_velocity * dt
-            angular_velocity *= (SPACE_DAMPING ** dt)
+            angular_velocity *= damping_factor
+
+            # 2. Calculate Acceleration (a = F / m)
+            ax = fx / self._mass
+            ay = fy / self._mass
+            
+            # 3. Integrate Velocity (v += a * dt) with Damping
+            self._velocity[0] += ax * dt
+            self._velocity[0] *= damping_factor
+            
+            self._velocity[1] += ay * dt
+            self._velocity[1] *= damping_factor
+
+            # 4. Integrate Position (p += v * dt)
+            self._position[0] += self._velocity[0] * dt
+            self._position[1] += self._velocity[1] * dt
 
         self._angle = normalize_angle(self._angle)
-
-        print("Estimated", self._angle)
-        print(self.drone.true_angle())
