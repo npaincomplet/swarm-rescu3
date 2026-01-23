@@ -3,6 +3,7 @@ import hashlib
 from solutions.components.pose import PoseEstimator, PoseEstimatorManager
 from solutions.utils.dataclasses_config import VisualizationParams
 from solutions.components.state_machine import DroneState
+from solutions.components.grids import Frontier
 
 class VisualizationDrawer:
     def __init__(self, half_size_array, conv_grid_to_world):
@@ -41,7 +42,7 @@ class VisualizationDrawer:
                 arcade.draw_line(float(pt2[0]), float(pt2[1]), float(pt1[0]), float(pt1[1]), [125, 125, 125])
             pt2 = pt1
 
-    def draw_top_layer(self, path, pose_estimator_manager: PoseEstimatorManager, current_state: DroneState, next_frontier_centroid, next_frontier):
+    def draw_top_layer(self, path, pose_estimator_manager: PoseEstimatorManager, current_state: DroneState, next_frontier: Frontier):
         if self.visualization_params.DRAW_PATH:
             self.draw_path(path)
         
@@ -49,9 +50,9 @@ class VisualizationDrawer:
             self.draw_all_pose_estimators(pose_estimator_manager)
 
         if current_state == DroneState.EXPLORING_FRONTIERS:
-            if self.visualization_params.DRAW_FRONTIER_CENTROID and next_frontier_centroid is not None:
-                self.draw_point(next_frontier_centroid + self._half_size_array)
+            if self.visualization_params.DRAW_FRONTIER_CENTROID and next_frontier.compute_centroid_pos() is not None:
+                self.draw_point(next_frontier.compute_centroid_pos() + self._half_size_array)
             
             if self.visualization_params.DRAW_FRONTIER_POINTS and next_frontier is not None:
-                for point in next_frontier.cells:
-                    self.draw_point(self.conv_grid_to_world(*point) + self._half_size_array, color=arcade.color.AIR_FORCE_BLUE)
+                for point in next_frontier.positions:
+                    self.draw_point(point + self._half_size_array, color=arcade.color.AIR_FORCE_BLUE)

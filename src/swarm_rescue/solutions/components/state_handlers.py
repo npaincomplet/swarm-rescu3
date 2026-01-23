@@ -132,3 +132,4 @@ class ExploringFrontiersState(DroneState):
         
     def on_exit(self):
         self.drone.reset_path_params()
+        self.drone.next_frontier = None

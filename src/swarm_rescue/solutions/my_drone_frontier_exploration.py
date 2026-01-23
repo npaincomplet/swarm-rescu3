@@ -78,7 +78,6 @@ class MyDroneFrontex(DroneAbstract):
         # Frontier exploration
         self.explored_all_frontiers = False
         self.next_frontier = None
-        self.next_frontier_centroid = None
 
         # Wall following
         self.wall_following_params = WallFollowingParams()
@@ -222,6 +221,16 @@ class MyDroneFrontex(DroneAbstract):
     def orientation(self):
         return self.active_pose_estimator.orientation
     
+    # Property to access exploration-related values
+    
+    @property
+    def next_frontier_centroid(self):
+        if isinstance(self.next_frontier, Frontier):
+            return self.next_frontier.compute_centroid_pos()
+        
+        else:
+            return None
+    
     # Property misc
 
     @property
@@ -336,9 +345,11 @@ class MyDroneFrontex(DroneAbstract):
         assigned_frontier = self.assign_frontier()
         
         if assigned_frontier is not None:
-            self.next_frontier_centroid = assigned_frontier.compute_centroid_pos()
+            self.next_frontier = assigned_frontier
+
             start_pos = self.position
             target_pos = self.next_frontier_centroid
+
             path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=False)
             if path is None:
                 print("Assigned frontier unreachable, deleting artifacts.")
@@ -448,6 +459,5 @@ class MyDroneFrontex(DroneAbstract):
             self.path,
             self.pose_estimator_manager,
             self.current_state,
-            self.next_frontier_centroid,
             self.next_frontier
         )

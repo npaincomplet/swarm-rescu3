@@ -7,6 +7,42 @@ from solutions.utils.dataclasses_config import *
 
 from sklearn.cluster import DBSCAN
 
+class Frontier:
+    """
+    Represents a frontier - a collection of adjacent cells that form a boundary 
+    between explored (FREE) and unexplored (UNDISCOVERED) areas of the grid.
+    All cell coordinates are in grid coordinate system.
+    """
+    MIN_FRONTIER_SIZE = GridParams.MIN_FRONTIER_SIZE
+
+    def __init__(self, cells, _conv_grid_to_world=None):
+        """
+        :param cells: List of arrays [array([x, y]), ...] representing the grid coordinates of the frontier cells.
+        """
+        self.cells = cells
+        self._conv_grid_to_world = _conv_grid_to_world
+
+    @property
+    def positions(self):
+        """World positions of the frontier cells."""
+        return self._conv_grid_to_world(self.cells)
+
+    def compute_centroid_cell(self):
+        if self.cells.size == 0:
+            return None
+        
+        return np.mean(self.cells, axis=0)
+    
+    def compute_centroid_pos(self):
+        centroid = self.compute_centroid_cell()
+        if centroid is None:
+            return None
+        
+        return self._conv_grid_to_world(centroid)
+
+    def size(self):
+        return len(self.cells)
+
 class Grid:
     """Simple grid"""
 
@@ -201,37 +237,6 @@ class OccupancyGrid(Grid):
     MIN_FRONTIER_SIZE = GridParams.MIN_FRONTIER_SIZE
     CLUSTERING_EPSILON = GridParams.CLUSTERING_EPSILON
 
-    class Frontier:
-        """
-        Represents a frontier - a collection of adjacent cells that form a boundary 
-        between explored (FREE) and unexplored (UNDISCOVERED) areas of the grid.
-        All cell coordinates are in grid coordinate system.
-        """
-        MIN_FRONTIER_SIZE = GridParams.MIN_FRONTIER_SIZE
-
-        def __init__(self, cells, _conv_grid_to_world=None):
-            """
-            :param cells: List of arrays [array([x, y]), ...] representing the grid coordinates of the frontier cells.
-            """
-            self.cells = cells
-            self._conv_grid_to_world = _conv_grid_to_world
-
-        def compute_centroid_cell(self):
-            if self.cells.size == 0:
-                return None
-            
-            return np.mean(self.cells, axis=0)
-        
-        def compute_centroid_pos(self):
-            centroid = self.compute_centroid_cell()
-            if centroid is None:
-                return None
-            
-            return self._conv_grid_to_world(centroid)
-
-        def size(self):
-            return len(self.cells)
-
     def __init__(self,
                  size_area_world,
                  resolution: float,
@@ -381,7 +386,7 @@ class OccupancyGrid(Grid):
             cluster_points = frontier_cells[labels == label_val]
             
             # Create frontier object
-            frontiers.append(self.Frontier(cluster_points, self._conv_grid_to_world))
+            frontiers.append(Frontier(cluster_points, self._conv_grid_to_world))
             
         return frontiers
     
