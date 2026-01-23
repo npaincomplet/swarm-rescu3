@@ -48,4 +48,12 @@ class CommandPoseEstimator(PoseEstimator):
             return
         
         angular_velocity = command["rotation"] * self.angular_ratio
-        self._angle += angular_velocity
+        dt = 1 / SIMULATION_STEPS
+        for _ in range(SIMULATION_STEPS):
+            self._angle += angular_velocity * dt
+            angular_velocity *= (SPACE_DAMPING ** dt)
+
+        self._angle = normalize_angle(self._angle)
+
+        print("Estimated", self._angle)
+        print(self.drone.true_angle())
