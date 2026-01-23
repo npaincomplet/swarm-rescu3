@@ -26,7 +26,7 @@ class WaitingState(DroneState):
 
     def handle(self):
         self.drone.step_waiting_count += 1
-        return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+        return self.drone.null_command
 
 
 class SearchingWallState(DroneState):
@@ -126,7 +126,7 @@ class ExploringFrontiersState(DroneState):
             # Return waiting behavior without changing state
             self.drone.reset_path_params()
             self.drone.step_waiting_count += 1
-            return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+            return self.drone.null_command
         else:
             return self.drone.follow_path(found_and_near_wounded=False)
         

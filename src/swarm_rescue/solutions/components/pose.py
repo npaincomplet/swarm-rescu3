@@ -2,7 +2,7 @@ import abc
 from typing import Tuple, Optional, Dict
 import numpy as np
 from swarm_rescue.simulation.utils.utils import normalize_angle
-from solutions.utils.dataclasses_config import *
+from solutions.utils.dataclasses_config import LocalizationParams
 
 class PoseEstimator(abc.ABC):
     """
@@ -39,10 +39,9 @@ class SimplePoseEstimator(PoseEstimator):
     """
     Simple pose estimation using GPS and dead reckoning.
     """
-    def __init__(self, size_area: Tuple[float, float]):
+    def __init__(self):
         self._position = np.zeros(2)
         self._orientation = 0.0
-        self.size_area = size_area
     
     @property
     def position(self) -> np.ndarray:
@@ -74,7 +73,7 @@ class SimplePoseEstimator(PoseEstimator):
         self._orientation = compass_angle
 
     def _odometry_update(self,
-               odometer_values: Optional[Tuple[float, float, float]] = None) -> None:
+               odometer_values: Optional[np.ndarray] = None) -> None:
         
         self._orientation += odometer_values[2]
         self._orientation = normalize_angle(self._orientation)
@@ -176,6 +175,7 @@ class EKFPoseEstimator(PoseEstimator):
         """
         if not self.initialized:
             self._lazy_init(gps_position, compass_angle)
+            return
 
         if odometer_values is not None:
             self.predict(odometer_values)

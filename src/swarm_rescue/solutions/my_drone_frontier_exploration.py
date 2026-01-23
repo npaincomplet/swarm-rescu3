@@ -5,6 +5,7 @@ from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.utils.misc_data import MiscData
 
 from solutions.components.pose import *
+from solutions.components.pose_test import *
 from solutions.components.astar import *
 from solutions.components.communication import *
 from solutions.components.grids import *
@@ -48,8 +49,9 @@ class MyDroneFrontex(DroneAbstract):
         self.mapping_params = MappingParams()
 
         self.pose_estimator_manager = PoseEstimatorManager()
-        self.pose_estimator_manager.add("simple", SimplePoseEstimator(size_area=self.size_area), active=False)
+        self.pose_estimator_manager.add("simple", SimplePoseEstimator())
         self.pose_estimator_manager.add("ekf", EKFPoseEstimator(), active=True)
+        self.pose_estimator_manager.add("command", CommandPoseEstimator(drone=self))
 
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
@@ -135,6 +137,7 @@ class MyDroneFrontex(DroneAbstract):
 
     def _init_misc(self):
         self.health_manager = HealthManager(self)
+        self.last_command = self.null_command
 
     # Properties to access communication-related values
 
@@ -218,6 +221,12 @@ class MyDroneFrontex(DroneAbstract):
     @property
     def orientation(self):
         return self.active_pose_estimator.orientation
+    
+    # Property misc
+
+    @property
+    def null_command(self):
+        return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
 
     def reset_path_params(self):
         self.path_controller.reset_path()
@@ -252,7 +261,7 @@ class MyDroneFrontex(DroneAbstract):
     def control(self):
         if self.is_killed():
             # Drone in KillZone. Or at least no lidar available
-            return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+            return self.null_command
 
         self.timestep_count += 1
         
@@ -277,7 +286,9 @@ class MyDroneFrontex(DroneAbstract):
 
         # Execute current state behavior
 
-        command = self.state_machine.handle_current_state()
+        command = self.state_machine.handle_current_state() or self.null_command
+
+        self.last_command = command
 
         self.logging_management()
 
@@ -366,7 +377,7 @@ class MyDroneFrontex(DroneAbstract):
             gps_position=self.measured_gps_position(),
             compass_angle=self.measured_compass_angle(),
             odometer_values=self.odometer_values(),
-            command={},
+            command=self.last_command,
             messages=[]
         )
 
