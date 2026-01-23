@@ -1,0 +1,8 @@
+Context:
+[Paste ONE section from the .md]
+
+Question:
+[One or two precise design questions]
+
+Constraints:
+[Optional: what you are not willing to change]
