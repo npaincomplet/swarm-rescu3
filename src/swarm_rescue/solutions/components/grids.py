@@ -72,12 +72,17 @@ class Frontier:
         if max_gap < np.pi:
             max_gap_index = np.argmax(all_diffs)
 
-            half_size = self.size // 2
-            index_start_f1 = max_gap_index % half_size
-            index_end_f1 = index_start_f1 + half_size
+            # Determine the split point based on the largest gap
+            if max_gap_index < len(diffs):
+                # Gap is between sorted_angles[max_gap_index] and sorted_angles[max_gap_index + 1]
+                split_point = max_gap_index + 1
+            else:
+                # Gap is the wrap-around
+                split_point = 0  # Split at the beginning (after the wrap)
 
-            f1_cells = sorted_cells[index_start_f1: index_end_f1]
-            f2_cells = np.concatenate((sorted_cells[:index_start_f1], sorted_cells[index_end_f1:]), axis=0)
+            half_size = self.size // 2
+            f1_cells = sorted_cells[split_point:split_point + half_size]
+            f2_cells = np.concatenate((sorted_cells[:split_point], sorted_cells[split_point + half_size:]), axis=0)
 
             f1 = Frontier(f1_cells, self._conv_grid_to_world)
             f2 = Frontier(f2_cells, self._conv_grid_to_world)
