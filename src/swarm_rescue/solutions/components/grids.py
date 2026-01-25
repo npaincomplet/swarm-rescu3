@@ -23,12 +23,16 @@ class Frontier:
         self._conv_grid_to_world = _conv_grid_to_world
 
     @property
+    def size(self):
+        return len(self.cells)
+
+    @property
     def positions(self):
         """World positions of the frontier cells."""
         return self._conv_grid_to_world(self.cells)
 
     def compute_centroid_cell(self):
-        if self.cells.size == 0:
+        if self.size == 0:
             return None
         
         return np.mean(self.cells, axis=0)
@@ -39,9 +43,47 @@ class Frontier:
             return None
         
         return self._conv_grid_to_world(centroid)
+    
+    def split_if_large_arc(self) -> list["Frontier"]:
+        """
+        If the frontier forms an arc > 180 degrees around its centroid, 
+        shatter it (split into smaller frontiers).
+        """
+        if self.size < 2 * self.MIN_FRONTIER_SIZE:
+             return [self]
+        
+        centroid = self.compute_centroid_cell()
 
-    def size(self):
-        return len(self.cells)
+        dy = self.cells[:, 1] - centroid[1]
+        dx = self.cells[:, 0] - centroid[0]
+        angles = np.arctan2(dy, dx)
+        
+        sorted_indices = np.argsort(angles)
+        sorted_angles = angles[sorted_indices]
+        sorted_cells = self.cells[sorted_indices]
+
+        # Calculate difference between adjacent angles (including the wrap-around)
+        diffs = np.diff(sorted_angles)
+        wrap_diff = (sorted_angles[0] + 2 * np.pi) - sorted_angles[-1]
+        all_diffs = np.append(diffs, wrap_diff)
+        max_gap = np.max(all_diffs)
+
+        # A small angular max_gap hints at a circular frontier
+        if max_gap < np.pi:
+            max_gap_index = np.argmax(all_diffs)
+
+            half_size = self.size // 2
+            index_start_f1 = max_gap_index % half_size
+            index_end_f1 = index_start_f1 + half_size
+
+            f1_cells = sorted_cells[index_start_f1: index_end_f1]
+            f2_cells = np.concatenate((sorted_cells[:index_start_f1], sorted_cells[index_end_f1:]), axis=0)
+
+            f1 = Frontier(f1_cells, self._conv_grid_to_world)
+            f2 = Frontier(f2_cells, self._conv_grid_to_world)
+            return [f1, f2]
+            
+        return [self]
 
 class Grid:
     """Simple grid"""
@@ -367,7 +409,7 @@ class OccupancyGrid(Grid):
         # Get grid coordinates of all frontier cells
         return np.argwhere(boundaries_map)
     
-    def _cluster_frontier_cells(self, frontier_cells):
+    def _cluster_frontier_cells(self, frontier_cells) -> list[Frontier]:
         # Apply DBSCAN clustering
         db = DBSCAN(
             eps=self.CLUSTERING_EPSILON, 
@@ -402,10 +444,14 @@ class OccupancyGrid(Grid):
             return []
             
         # Cluster frontier cells using DBSCAN
-        frontiers = self._cluster_frontier_cells(frontier_cells)
+        raw_frontiers = self._cluster_frontier_cells(frontier_cells)
+
+        refined_frontiers = []
+        for frontier in raw_frontiers:
+            refined_frontiers.extend(frontier.split_if_large_arc())
         
-        self.frontiers = frontiers
-        return frontiers
+        self.frontiers = refined_frontiers
+        return refined_frontiers
 
     def delete_frontier_artifacts(self, frontier):
         """

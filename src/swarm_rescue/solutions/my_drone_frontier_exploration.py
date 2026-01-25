@@ -331,7 +331,7 @@ class MyDroneFrontex(DroneAbstract):
         for i, drone_pos in enumerate(drone_positions):
             for j, frontier in enumerate(frontiers):
                 centroid = frontier.compute_centroid_pos()
-                cost_matrix[i, j] = np.linalg.norm(drone_pos - centroid) / (frontier.size() + 1)
+                cost_matrix[i, j] = np.linalg.norm(drone_pos - centroid) / (frontier.size + 1)
 
         row_ind, col_ind = linear_sum_assignment(cost_matrix)   # row_ind are drone indices in drone_positins and sorted, col_ind are frontier indices
 
