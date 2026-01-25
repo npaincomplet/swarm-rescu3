@@ -69,7 +69,7 @@ class Frontier:
         max_gap = np.max(all_diffs)
 
         # A small angular max_gap hints at a circular frontier
-        if max_gap < np.pi:
+        if max_gap < GridParams.FRONTIER_SPLIT_THRESHOLD:
             max_gap_index = np.argmax(all_diffs)
 
             # Determine the split point based on the largest gap

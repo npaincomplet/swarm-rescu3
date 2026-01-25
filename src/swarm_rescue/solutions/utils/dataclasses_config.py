@@ -86,6 +86,7 @@ class GridParams:
 
     MIN_FRONTIER_SIZE: int = 3
     CLUSTERING_EPSILON: float = 2.0
+    FRONTIER_SPLIT_THRESHOLD: float = 2.0   # radians
 
     EVERY_N: int = 3
     LIDAR_DIST_CLIP: float = 40.0
