@@ -352,7 +352,6 @@ class MyDroneFrontex(DroneAbstract):
 
             path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=False)
             if path is None:
-                print("Assigned frontier unreachable, deleting artifacts.")
                 self.grid.delete_frontier_artifacts(self.next_frontier)
             else:
                 self.path_controller.set_path(path, self.position)
@@ -369,7 +368,6 @@ class MyDroneFrontex(DroneAbstract):
         for _,broadcast_loc in self.wounded_locked :
             distance = np.linalg.norm(np.array(self.position) - np.array(broadcast_loc))
             if distance < threshold:
-                print("Near a rescuing drone")
                 return True
         return False
 

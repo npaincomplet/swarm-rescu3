@@ -352,9 +352,6 @@ class OccupancyGrid(Grid):
         for ray_endpoint in ray_confidence_endpoints:
             cell_endpoint = self._conv_world_to_grid(ray_endpoint)
             x,y = cell_endpoint
-            if 210<=x and x<=260 and 10<=y and y<=50:
-                print(self._conv_world_to_grid(pose.position))
-                print(lidar_dist[np.where((ray_confidence_endpoints == ray_endpoint).all(axis=1))[0][0]])
             self.add_value_along_line(pose.position, ray_endpoint, self.grid_params.EMPTY_ZONE_VALUE)
 
     def _update_obstacles(self, pose: PoseEstimator):
@@ -457,7 +454,6 @@ class OccupancyGrid(Grid):
         """
         Set to THRESHOLD_MAX (which relates to OBSTACLE) in the grid all cells of frontier
         """
-        print("Deleting frontier artifacts")
         if frontier is not None:
             for cell in frontier.cells:
                 self.grid[cell] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
