@@ -6,6 +6,28 @@ from solutions.components.pose import PoseEstimator
 from simulation.utils.definitions import SPACE_DAMPING, PYMUNK_STEPS, ANGULAR_VELOCITY, LINEAR_FORCE
 from simulation.utils.constants import ANGULAR_SPEED_RATIO, LINEAR_SPEED_RATIO
 
+class TrueEstimator(PoseEstimator):
+    """
+    True
+    """
+    def __init__(self, drone):
+        self.drone = drone
+
+    @property
+    def position(self) -> np.ndarray:
+        return self.drone.true_position().copy()
+    
+    @property
+    def orientation(self) -> float:
+        return self.drone.true_angle()
+        
+    def update(self,
+               gps_position: Optional[np.ndarray] = None,
+               compass_angle: Optional[float] = None,
+               odometer_values: Optional[np.ndarray] = None,
+               command: Optional[dict] = None,
+               messages: Optional[list] = None) -> None:
+        pass
 
 class CommandPoseEstimator(PoseEstimator):
     """
@@ -20,12 +42,12 @@ class CommandPoseEstimator(PoseEstimator):
 
         self.angular_ratio = ANGULAR_VELOCITY * ANGULAR_SPEED_RATIO
         self.linear_ratio = LINEAR_FORCE * LINEAR_SPEED_RATIO
-        self._mass = 50.0 * 11.75
+        self._mass = 50 * 10
 
     def _lazy_init(self) -> None:
         """Initialize state from first valid GPS/compass readings."""
-        self._position = self.drone.true_position().copy()
-        self._angle = self.drone.true_angle()
+        self._position = self.drone.measured_gps_position().copy()
+        self._angle = self.drone.measured_compass_angle()
         self._velocity = np.zeros(2)
 
         self.initialized = True
@@ -61,8 +83,8 @@ class CommandPoseEstimator(PoseEstimator):
             cmd_forward = cmd_forward / norm
             cmd_lateral = cmd_lateral / norm
 
-        forward_force = command["forward"] * self.linear_ratio
-        lateral_force = command["lateral"] * self.linear_ratio
+        forward_force = cmd_forward * self.linear_ratio
+        lateral_force = cmd_lateral * self.linear_ratio
 
         dt = 1 / PYMUNK_STEPS
         damping_factor = SPACE_DAMPING ** dt
