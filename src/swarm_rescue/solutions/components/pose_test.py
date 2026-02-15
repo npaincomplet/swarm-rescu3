@@ -2,7 +2,7 @@ from typing import Optional, Tuple
 import numpy as np
 import math
 from swarm_rescue.simulation.utils.utils import normalize_angle
-from solutions.components.pose import PoseEstimator, EKFPoseEstimator
+from solutions.components.pose import PoseEstimator
 from solutions.utils.dataclasses_config import LocalizationParams
 from simulation.utils.definitions import SPACE_DAMPING, PYMUNK_STEPS, ANGULAR_VELOCITY, LINEAR_FORCE
 from simulation.utils.constants import ANGULAR_SPEED_RATIO, LINEAR_SPEED_RATIO
@@ -27,6 +27,7 @@ class TrueEstimator(PoseEstimator):
                compass_angle: Optional[float] = None,
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
+               lidar_values: Optional[np.ndarray] = None,
                messages: Optional[list] = None) -> None:
         pass
 
@@ -66,6 +67,7 @@ class CommandPoseEstimator(PoseEstimator):
                compass_angle: Optional[float] = None,
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
+               lidar_values: Optional[np.ndarray] = None,
                messages: Optional[list] = None) -> None:
         if not self.initialized:
             self._lazy_init()
@@ -196,6 +198,7 @@ class NewPoseEstimator(PoseEstimator):
                compass_angle: Optional[float] = None,
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
+               lidar_values: Optional[np.ndarray] = None,
                messages: Optional[list] = None) -> None:
         
         if not self.initialized:
@@ -490,6 +493,7 @@ class New2PoseEstimator(PoseEstimator):
                 compass_angle: Optional[float] = None,
                 odometer_values: Optional[np.ndarray] = None,
                 command: Optional[dict] = None,
+                lidar_values: Optional[np.ndarray] = None,
                 messages: Optional[list] = None) -> None:
         
         if not self.initialized:

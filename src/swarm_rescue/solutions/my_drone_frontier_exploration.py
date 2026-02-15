@@ -120,7 +120,7 @@ class MyDroneFrontex(DroneAbstract):
             self.rotation_pid,
             self.lateral_pid,
             self.forward_pid,
-            self.lidar().ray_angles
+            self.lidar_rays_angles()
         )
 
     def _init_logging(self):
@@ -260,7 +260,7 @@ class MyDroneFrontex(DroneAbstract):
         }
 
     def is_killed(self):
-        in_kill_zone = self.lidar().get_sensor_values() is None
+        in_kill_zone = self.lidar_values() is None
 
         return in_kill_zone
     
@@ -280,8 +280,8 @@ class MyDroneFrontex(DroneAbstract):
         self.mapping(display=self.mapping_params.DISPLAY_MAP)
         self.communication_management()
 
-        lidar_values = self.lidar().get_sensor_values()
-        ray_angles = self.lidar().ray_angles
+        lidar_values = self.lidar_values()
+        ray_angles = self.lidar_rays_angles()
         semantic_values = self.semantic_values()
         self.sensor_manager.process_sensors(lidar_values, ray_angles, 
                                             semantic_values,
@@ -379,8 +379,8 @@ class MyDroneFrontex(DroneAbstract):
             self.position,
             self.estimated_pose.orientation,
             self.odometer_values(),
-            self.lidar().get_sensor_values(),
-            self.lidar().ray_angles,
+            self.lidar_values(),
+            self.lidar_rays_angles(),
             found_and_near_wounded
         )
     
@@ -390,6 +390,7 @@ class MyDroneFrontex(DroneAbstract):
             compass_angle=self.measured_compass_angle(),
             odometer_values=self.odometer_values(),
             command=self.last_command,
+            lidar_values=self.lidar_values(),
             messages=[]
         )
 

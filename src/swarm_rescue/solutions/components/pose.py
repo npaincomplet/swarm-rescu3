@@ -28,6 +28,7 @@ class PoseEstimator(abc.ABC):
                compass_angle: Optional[float] = None,
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
+               lidar_values: Optional[np.ndarray] = None,
                messages: Optional[list] = None) -> None:
         """
         Update the pose based on available sensor data and commands.
@@ -56,6 +57,7 @@ class SimplePoseEstimator(PoseEstimator):
                compass_angle: Optional[float] = None,
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
+               lidar_values: Optional[np.ndarray] = None,
                messages: Optional[list] = None) -> None:
 
         if gps_position is not None and compass_angle is not None:
@@ -169,6 +171,7 @@ class EKFPoseEstimator(PoseEstimator):
                compass_angle: Optional[float] = None,
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
+               lidar_values: Optional[np.ndarray] = None,
                messages: Optional[list] = None) -> None:
         """
         Perform one EKF step: predict (if odom given) and update (if measurements given).
@@ -373,6 +376,7 @@ class PoseEstimatorManager:
                    compass_angle: Optional[float] = None,
                    odometer_values: Optional[np.ndarray] = None,
                    command: Optional[dict] = None,
+                   lidar_values: Optional[np.ndarray] = None,
                    messages: Optional[list] = None) -> None:
         for estimator in self.estimators.values():
             estimator.update(
@@ -380,5 +384,6 @@ class PoseEstimatorManager:
                 compass_angle=compass_angle,
                 odometer_values=odometer_values,
                 command=command,
+                lidar_values=lidar_values,
                 messages=messages
             )
