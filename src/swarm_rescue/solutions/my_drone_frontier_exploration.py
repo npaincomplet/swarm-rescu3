@@ -53,6 +53,7 @@ class MyDroneFrontex(DroneAbstract):
         self.pose_estimator_manager.add("ekf", EKFPoseEstimator())
         self.pose_estimator_manager.add("command", CommandPoseEstimator(drone=self))
         self.pose_estimator_manager.add("new", NewPoseEstimator())
+        self.pose_estimator_manager.add("new2", New2PoseEstimator())
         #self.pose_estimator_manager.add("true", TrueEstimator(drone=self))
 
         self.grid = OccupancyGrid(size_area_world=self.size_area,
