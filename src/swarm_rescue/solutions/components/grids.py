@@ -480,6 +480,26 @@ class OccupancyGrid(Grid):
             
         return None
 
+    def mark_unreachable_undiscovered_as_obstacles(self):
+        undiscovered_mask = self.undiscovered_mask().astype(np.uint8)
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(undiscovered_mask, connectivity=4)
+        
+        free_mask_uint8 = self.free_mask().astype(np.uint8)
+        kernel = np.ones((3, 3), np.uint8)
+        
+        # Skip label 0 (background)
+        for label in range(1, num_labels):
+            component_mask = (labels == label).astype(np.uint8)
+            dilated_component = cv2.dilate(component_mask, kernel, iterations=1)
+            intersection = dilated_component & free_mask_uint8
+            is_reachable = np.any(intersection)
+            region_size = stats[label, cv2.CC_STAT_AREA]
+            
+            if not is_reachable and region_size > self.grid_params.MIN_UNREACHABLE_REGION_SIZE:
+                print("Deleting unreachable undiscovered region of size", region_size)
+                component_coords = np.argwhere(component_mask)
+                self.grid[component_coords[:, 0], component_coords[:, 1]] = self.grid_params.UNREACHABLE_REGION_VALUE
+
     def merge_grids(self, other_grid):
         self.grid = (self.grid + other_grid)/2
     

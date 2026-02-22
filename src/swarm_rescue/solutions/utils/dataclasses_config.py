@@ -104,6 +104,9 @@ class GridParams:
     FREE_THRESHOLD: float = 0
     OBSTACLE_THRESHOLD: float = 0
 
+    MIN_UNREACHABLE_REGION_SIZE: int = 50
+    UNREACHABLE_REGION_VALUE: float = 20.0
+
 @dataclass
 class LocalizationParams:
     # AR1 noise
