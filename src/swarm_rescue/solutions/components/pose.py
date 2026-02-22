@@ -3,6 +3,8 @@ from typing import Tuple, Optional, Dict
 import numpy as np
 from swarm_rescue.simulation.utils.utils import normalize_angle
 from solutions.utils.dataclasses_config import LocalizationParams
+from simulation.utils.definitions import SPACE_DAMPING, PYMUNK_STEPS, ANGULAR_VELOCITY, LINEAR_FORCE
+from simulation.utils.constants import ANGULAR_SPEED_RATIO, LINEAR_SPEED_RATIO
 
 class PoseEstimator(abc.ABC):
     """
@@ -29,6 +31,7 @@ class PoseEstimator(abc.ABC):
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
                lidar_values: Optional[np.ndarray] = None,
+               holding_wounded: Optional[bool] = None,
                messages: Optional[list] = None) -> None:
         """
         Update the pose based on available sensor data and commands.
@@ -58,6 +61,7 @@ class SimplePoseEstimator(PoseEstimator):
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
                lidar_values: Optional[np.ndarray] = None,
+               holding_wounded: Optional[bool] = None,
                messages: Optional[list] = None) -> None:
 
         if gps_position is not None and compass_angle is not None:
@@ -172,6 +176,7 @@ class EKFPoseEstimator(PoseEstimator):
                odometer_values: Optional[np.ndarray] = None,
                command: Optional[dict] = None,
                lidar_values: Optional[np.ndarray] = None,
+               holding_wounded: Optional[bool] = None,
                messages: Optional[list] = None) -> None:
         """
         Perform one EKF step: predict (if odom given) and update (if measurements given).
@@ -181,7 +186,8 @@ class EKFPoseEstimator(PoseEstimator):
             return
 
         if odometer_values is not None:
-            self.predict(odometer_values)
+            min_lidar_value = min(lidar_values)
+            self.predict(odometer_values, command, min_lidar_value, holding_wounded)
 
         # Build measurement vector and H matrix dynamically depending on available sensors
         # Our measurement function (complete) would be:
@@ -247,7 +253,7 @@ class EKFPoseEstimator(PoseEstimator):
             # ensure symmetric
             self.P = (self.P + self.P.T) / 2.0
 
-    def predict(self, odometer_values: np.ndarray) -> None:
+    def predict(self, odometer_values: np.ndarray, command, min_lidar_value, holding_wounded) -> None:
         """
         EKF prediction step using odometry and AR(1) evolution of noise states.
 
@@ -261,7 +267,11 @@ class EKFPoseEstimator(PoseEstimator):
         px, py, theta, n_gx, n_gy, n_c = self.x.copy()
 
         # Pose propagation
-        theta_pred = normalize_angle(theta + dtheta)
+        if min_lidar_value < 20.0 or holding_wounded:
+            theta_pred = normalize_angle(theta + dtheta)
+        else:
+            theta_pred = CommandPredictor.next_orientation(theta, command)
+
         move_angle = normalize_angle(theta + alpha_rel)
         px_pred = px + d * np.cos(move_angle)
         py_pred = py + d * np.sin(move_angle)
@@ -377,6 +387,7 @@ class PoseEstimatorManager:
                    odometer_values: Optional[np.ndarray] = None,
                    command: Optional[dict] = None,
                    lidar_values: Optional[np.ndarray] = None,
+                   holding_wounded: Optional[bool] = None,
                    messages: Optional[list] = None) -> None:
         for estimator in self.estimators.values():
             estimator.update(
@@ -385,5 +396,22 @@ class PoseEstimatorManager:
                 odometer_values=odometer_values,
                 command=command,
                 lidar_values=lidar_values,
+                holding_wounded=holding_wounded,
                 messages=messages
             )
+
+class CommandPredictor():
+    ANGULAR_RATIO = ANGULAR_VELOCITY * ANGULAR_SPEED_RATIO
+    DT = 1 / PYMUNK_STEPS
+    DAMPING_FACTOR = SPACE_DAMPING ** DT
+
+    @staticmethod
+    def next_orientation(last_orientation, command):
+        angle = last_orientation
+        angular_velocity = command["rotation"] * CommandPredictor.ANGULAR_RATIO
+        
+        for _ in range(PYMUNK_STEPS):
+            angle += angular_velocity * CommandPredictor.DT
+            angular_velocity *= CommandPredictor.DAMPING_FACTOR
+            
+        return normalize_angle(angle)

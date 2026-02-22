@@ -5,7 +5,6 @@ from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.utils.misc_data import MiscData
 
 from solutions.components.pose import *
-from solutions.components.pose_test import *
 from solutions.components.astar import *
 from solutions.components.communication import *
 from solutions.components.grids import *
@@ -50,7 +49,6 @@ class MyDroneFrontex(DroneAbstract):
 
         self.pose_estimator_manager = PoseEstimatorManager()
         self.pose_estimator_manager.add("ekf", EKFPoseEstimator(),active = True)
-        #self.pose_estimator_manager.add("true", TrueEstimator(drone=self))
 
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                  resolution=self.mapping_params.RESOLUTION,
@@ -238,6 +236,10 @@ class MyDroneFrontex(DroneAbstract):
     @property
     def null_command(self):
         return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+    
+    @property
+    def holding_wounded(self):
+        return bool(self.grasper.grasped_wounded_persons)
 
     def reset_path_params(self):
         self.path_controller.reset_path()
@@ -254,7 +256,7 @@ class MyDroneFrontex(DroneAbstract):
             "near_obstacle": self.near_obstacle,
             "lost_wall": not self.near_obstacle,
             "found_wounded": self.found_wounded,
-            "holding_wounded": bool(self.grasper.grasped_wounded_persons),
+            "holding_wounded": self.holding_wounded,
             "lost_wounded": not self.found_wounded and not self.grasper.grasped_wounded_persons,
             "found_rescue_center": self.found_rescue_center,
             "lost_rescue_center": not self.grasper.grasped_wounded_persons,
@@ -402,6 +404,7 @@ class MyDroneFrontex(DroneAbstract):
             odometer_values=self.odometer_values(),
             command=self.last_command,
             lidar_values=self.lidar_values(),
+            holding_wounded=self.holding_wounded,
             messages=[]
         )
 
