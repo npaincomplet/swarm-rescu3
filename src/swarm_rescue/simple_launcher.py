@@ -1,8 +1,11 @@
 import sys
 import traceback
 
+from swarm_rescue.simulation.reporting.evaluation import ZonesConfig
+from swarm_rescue.simulation.elements.sensor_disablers import ZoneType
 from swarm_rescue.simulation.gui_map.gui_sr import GuiSR
 from swarm_rescue.map_editor.map_empty import MyMapempty
+from swarm_rescue.maps.map_test_special_zones import MapTestSpecialZones
 from swarm_rescue.solutions.my_drone_eval import MyDroneEval
 
 
@@ -12,9 +15,9 @@ class MyDrone(MyDroneEval):
 
 
 def main():
-    # Simple launcher for one map: MapTestSpecialZones with no special zones
-    zones_config = ()  # No special zones
-    the_map = MyMapempty(drone_type=MyDrone, zones_config=zones_config)
+    # Simple launcher for one map
+    zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
+    the_map = MapTestSpecialZones(drone_type=MyDrone, zones_config=zones_config)
 
     my_gui = GuiSR(the_map=the_map, draw_interactive=False, headless=False)
 
