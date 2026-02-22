@@ -459,9 +459,10 @@ class OccupancyGrid(Grid):
         """
         Set to THRESHOLD_MAX (which relates to OBSTACLE) in the grid all cells of frontier
         """
+        print("Deleting frontier artifacts of size", frontier.size)
         if frontier is not None:
             for cell in frontier.cells:
-                self.grid[cell] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
+                self.grid[tuple(cell)] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
     
     def _perimeter_cells(self, center, max_radius):
         for r in range(max_radius + 1):
