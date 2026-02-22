@@ -298,8 +298,6 @@ class MyDroneFrontex(DroneAbstract):
 
         self.last_command = command
 
-        self.logging_management()
-
         return command
 
     def plan_path_to_rescue_center(self):
