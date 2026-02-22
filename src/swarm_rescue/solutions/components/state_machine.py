@@ -19,6 +19,9 @@ class DroneState(Enum):
         SEARCHING_RETURN_AREA = auto()
         GOING_RETURN_AREA = auto()
 
+        EVALUATE_END_OF_MISSION = auto()
+        END_OF_MISSION = auto()
+
 class DroneStateMachine:
     def __init__(self, drone):
         self.drone = drone
@@ -34,6 +37,8 @@ class DroneStateMachine:
             DroneState.SEARCHING_RESCUE_CENTER: SearchingRescueCenterState(drone),
             DroneState.GOING_RESCUE_CENTER: GoingRescueCenterState(drone),
             DroneState.EXPLORING_FRONTIERS: ExploringFrontiersState(drone),
+            DroneState.EVALUATE_END_OF_MISSION: EvaluateEndOfMissionState(drone),
+            DroneState.END_OF_MISSION: EndOfMissionState(drone),
         }
         
         # Define state transitions
@@ -55,8 +60,14 @@ class DroneStateMachine:
             },
             DroneState.EXPLORING_FRONTIERS: {
                 "found_wounded": DroneState.GRASPING_WOUNDED,
-                "no_frontiers_left": DroneState.FOLLOWING_WALL,
+                "no_frontiers_left": DroneState.EVALUATE_END_OF_MISSION,
                 "is_near_rescuing_drone": DroneState.WAITING
+            },
+            DroneState.EVALUATE_END_OF_MISSION: {
+                "sufficient_exploration_score": DroneState.END_OF_MISSION,
+                "insufficient_exploration_score": DroneState.FOLLOWING_WALL
+            },
+            DroneState.END_OF_MISSION: {
             },
             DroneState.SEARCHING_WALL: {
                 "found_wounded": DroneState.GRASPING_WOUNDED,

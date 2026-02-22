@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import numpy as np
 
 class DroneState(ABC):
     """Abstract base class for all drone states"""
@@ -128,8 +129,29 @@ class ExploringFrontiersState(DroneState):
             self.drone.step_waiting_count += 1
             return self.drone.null_command
         else:
-            return self.drone.follow_path(found_and_near_wounded=False)
+            return self.drone.follow_path()
         
     def on_exit(self):
         self.drone.reset_path_params()
         self.drone.next_frontier = None
+
+
+class EvaluateEndOfMissionState(DroneState):
+    def handle(self):
+        print(self.drone.compute_exploration_score())
+        return self.drone.null_command
+    
+class EndOfMissionState(DroneState):
+    def on_enter(self):
+        self.drone.plan_path_to_return_area()
+
+    def handle(self):
+        drone_distance_to_initial_pos = np.linalg.norm(self.drone.position - self.drone.initial_position)
+
+        if self.drone.path_controller.finished_path and not self.drone.is_inside_return_area:
+            self.drone.plan_path_to_return_area()
+
+        if self.drone.path_controller.finished_path:
+            return self.drone.null_command
+        else:
+            return self.drone.follow_path()

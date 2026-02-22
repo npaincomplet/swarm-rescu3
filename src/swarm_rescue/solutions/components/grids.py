@@ -106,6 +106,10 @@ class Grid:
 
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
 
+    @property
+    def total_cells(self):
+        return self.x_max_grid * self.y_max_grid
+
     def _conv_world_to_grid(self, world_coords):
         """
         Convert world coordinates to grid cell indices.
@@ -500,6 +504,13 @@ class OccupancyGrid(Grid):
                 print("Deleting unreachable undiscovered region of size", region_size)
                 component_coords = np.argwhere(component_mask)
                 self.grid[component_coords[:, 0], component_coords[:, 1]] = self.grid_params.UNREACHABLE_REGION_VALUE
+    
+    def compute_exploration_score(self):
+        """Between 0 and 1."""
+        self.mark_unreachable_undiscovered_as_obstacles()
+        # Cells with values 0 (initialization) are assumed not to have been visited
+        explored_cells = np.sum(self.grid != 0)
+        return explored_cells / self.total_cells
 
     def merge_grids(self, other_grid):
         self.grid = (self.grid + other_grid)/2

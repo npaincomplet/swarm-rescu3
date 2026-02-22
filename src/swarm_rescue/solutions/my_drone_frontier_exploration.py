@@ -81,6 +81,9 @@ class MyDroneFrontex(DroneAbstract):
         # Wall following
         self.wall_following_params = WallFollowingParams()
 
+        # End of mission
+        self.end_of_mission_params = EndOfMissionParams()
+
     def _init_sensors(self):
         self.sensor_manager = SensorManager()
 
@@ -241,6 +244,11 @@ class MyDroneFrontex(DroneAbstract):
     
     def get_sensor_conditions(self):
         is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=30.0)
+
+        if len(self.grid.frontiers) == 0:
+            sufficient_exploration_score = self.compute_exploration_score() > self.end_of_mission_params.MIN_EXPLORATION_SCORE
+        else:
+            sufficient_exploration_score = False
         
         return {
             "near_obstacle": self.near_obstacle,
@@ -252,7 +260,9 @@ class MyDroneFrontex(DroneAbstract):
             "lost_rescue_center": not self.grasper.grasped_wounded_persons,
             "no_frontiers_left": len(self.grid.frontiers) == 0,
             "waiting_time_over": self.step_waiting_count >= self.waiting_params.STEP_WAITING,
-            "is_near_rescuing_drone": is_near_rescuing_drone
+            "is_near_rescuing_drone": is_near_rescuing_drone,
+            "sufficient_exploration_score": sufficient_exploration_score,
+            "insufficient_exploration_score": not sufficient_exploration_score
         }
 
     def is_killed(self):
@@ -356,6 +366,13 @@ class MyDroneFrontex(DroneAbstract):
         else:
             self.explored_all_frontiers = True
 
+    def plan_path_to_return_area(self):
+        start_pos = self.position
+        target_pos = self.initial_position
+
+        path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=False)
+        self.path_controller.set_path(path, self.position)
+
     def check_near_rescuing_drone(self, threshold, messages=None):
         """
         Checks if any received broadcast message indicates a drone (other than self)
@@ -368,14 +385,14 @@ class MyDroneFrontex(DroneAbstract):
                 return True
         return False
 
-    def follow_path(self, found_and_near_wounded):
+    def follow_path(self, found_and_near_wounded=False):
         return self.path_controller.follow_path(
             self.position,
             self.estimated_pose.orientation,
             self.odometer_values(),
             self.lidar_values(),
             self.lidar_rays_angles(),
-            found_and_near_wounded
+            found_and_near_wounded=found_and_near_wounded
         )
     
     def position_update(self):
@@ -401,6 +418,9 @@ class MyDroneFrontex(DroneAbstract):
              self.grid.display(self.grid.zoomed_grid,
                                self.estimated_pose,
                                title=f"Drone {self.identifier} zoomed occupancy grid")
+    
+    def compute_exploration_score(self):
+        return self.grid.compute_exploration_score()
 
     def misc_management(self):
         self.health_manager.update()

@@ -30,6 +30,10 @@ class WallFollowingParams:
     SPEED_TURNING: float = 0.05
 
 @dataclass
+class EndOfMissionParams:
+    MIN_EXPLORATION_SCORE: float = 0.9
+
+@dataclass
 class SensorParams:
     RESCUE_CENTER_DETECTION_THRESHOLD: float = 30.0
     NEAR_OBSTACLE_THRESHOLD: float = WallFollowingParams.DMAX # Beware of the circular dependency with WallFollowingParams
