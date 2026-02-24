@@ -91,7 +91,7 @@ class Frontier:
         return [self]
 
 class Grid:
-    """Simple grid"""
+    """Simple complex-valued grid"""
 
     def __init__(self,
                  size_area_world,
@@ -104,7 +104,7 @@ class Grid:
         self.y_max_grid: int = (
             int(self.size_area_world[1] / self.resolution + 0.5))
 
-        self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
+        self.grid = np.zeros((self.x_max_grid, self.y_max_grid), dtype=complex)
 
     @property
     def total_cells(self):
@@ -270,6 +270,8 @@ class Grid:
         robot_pose : [x, y, theta] nparray, corrected robot pose
         """
         img = grid_to_display.T
+        if np.iscomplexobj(img):
+            img = img.real + img.imag # Visual approximation for debug
         img = img - img.min()
         img = img / img.max() * 255
         img = np.uint8(img)
@@ -280,7 +282,12 @@ class Grid:
 
 
 class OccupancyGrid(Grid):
-    """Self updating occupancy grid"""
+    """
+    Self updating occupancy grid. Grids are complex-valued.
+    For each cell of the grid:
+        Real part relates to observations when the drone has access to the gps (quality observation)
+        Imaginary part relates to other observations (noisy observation)
+    """
 
     OBSTACLE = GridParams.OBSTACLE
     FREE = GridParams.FREE
@@ -314,32 +321,46 @@ class OccupancyGrid(Grid):
         self.grid[:, [0, -1]] = WORLD_BORDERS_VALUE
     
     def to_ternary_map(self):
+        """
+        For each cell:
+            If real part is non zero, use it (quality observations)
+            Else use imaginary part (noisy observations)
+        """
         OBSTACLE_THRESHOLD = GridParams.OBSTACLE_THRESHOLD
         FREE_THRESHOLD = GridParams.FREE_THRESHOLD
 
-        ternary_map = np.zeros_like(self.grid, dtype=int)
-        ternary_map[self.grid > OBSTACLE_THRESHOLD] = self.OBSTACLE
-        ternary_map[self.grid < FREE_THRESHOLD] = self.FREE
-        ternary_map[self.grid == 0] = self.UNDISCOVERED
+        real_part = self.grid.real
+        imag_part = self.grid.imag
+
+        use_imag_mask = (real_part == 0)
+        
+        effective_grid = np.where(use_imag_mask, imag_part, real_part)
+
+        ternary_map = np.zeros_like(real_part, dtype=int)
+        ternary_map[effective_grid > OBSTACLE_THRESHOLD] = self.OBSTACLE
+        ternary_map[effective_grid < FREE_THRESHOLD] = self.FREE
+        ternary_map[effective_grid == 0] = self.UNDISCOVERED
         return ternary_map
     
-    def update(self, pose: PoseEstimator):
+    def update(self, pose: PoseEstimator, gps_enabled: bool = True):
         """
         Updates the occupancy grid using ray casting algorithm with lidar data.
         Sensor noise : Gaussian(m=0, s=2.5)
         
         Args:
             pose: The current pose of the drone
+            gps_enabled: Whether the update is performed with GPS data
         """
-        self._update_free_space(pose)
+        self._update_free_space(pose, gps_enabled)
         
-        self._update_obstacles(pose)
+        self._update_obstacles(pose, gps_enabled)
 
-        self.grid = np.clip(self.grid, self.grid_params.THRESHOLD_MIN, self.grid_params.THRESHOLD_MAX)
+        self.grid.real = np.clip(self.grid.real, self.grid_params.THRESHOLD_MIN, self.grid_params.THRESHOLD_MAX)
+        self.grid.imag = np.clip(self.grid.imag, self.grid_params.THRESHOLD_MIN, self.grid_params.THRESHOLD_MAX)
         
         self._update_zoomed_grid()
 
-    def _update_free_space(self, pose: PoseEstimator):
+    def _update_free_space(self, pose: PoseEstimator, gps_enabled: bool):
         # Sample lidar data at regular intervals
         lidar_dist = self.lidar.get_sensor_values()[::self.grid_params.EVERY_N].copy()
         lidar_angles = self.lidar.ray_angles[::self.grid_params.EVERY_N].copy()
@@ -358,12 +379,16 @@ class OccupancyGrid(Grid):
             pose.position[1] + np.multiply(confidence_dist, sin_rays)
         ))
 
+        update_value = self.grid_params.EMPTY_ZONE_VALUE
+        if not gps_enabled:
+            update_value = update_value * 1j
+
         for ray_endpoint in ray_confidence_endpoints:
             cell_endpoint = self._conv_world_to_grid(ray_endpoint)
             x,y = cell_endpoint
-            self.add_value_along_line(pose.position, ray_endpoint, self.grid_params.EMPTY_ZONE_VALUE)
+            self.add_value_along_line(pose.position, ray_endpoint, update_value)
 
-    def _update_obstacles(self, pose: PoseEstimator):
+    def _update_obstacles(self, pose: PoseEstimator, gps_enabled: bool):
         # Sample lidar data at regular intervals
         lidar_dist = self.lidar.get_sensor_values()[::self.grid_params.EVERY_N].copy()
         lidar_angles = self.lidar.ray_angles[::self.grid_params.EVERY_N].copy()
@@ -377,16 +402,20 @@ class OccupancyGrid(Grid):
         no_obstacle_threshold = MAX_RANGE_LIDAR_SENSOR - self.grid_params.LIDAR_DIST_CLIP
         hit_obstacle = lidar_dist < no_obstacle_threshold
 
+        update_value = self.grid_params.OBSTACLE_ZONE_VALUE
+        if not gps_enabled:
+            update_value = update_value * 1j
+
         ray_endpoints = np.column_stack((
             pose.position[0] + np.multiply(lidar_dist, cos_rays),
             pose.position[1] + np.multiply(lidar_dist, sin_rays)
         ))
 
         obstacle_points = ray_endpoints[hit_obstacle]
-        self.add_value_to_points(obstacle_points, self.grid_params.OBSTACLE_ZONE_VALUE)
+        self.add_value_to_points(obstacle_points, update_value)
 
     def _update_zoomed_grid(self):
-        zoomed_grid = self.grid.copy()
+        zoomed_grid = self.grid.real + self.grid.imag # Simple visualization combination
         
         new_zoomed_size = (int(self.size_area_world[1] * 0.5),
                            int(self.size_area_world[0] * 0.5))
@@ -464,9 +493,12 @@ class OccupancyGrid(Grid):
         Set to THRESHOLD_MAX (which relates to OBSTACLE) in the grid all cells of frontier
         """
         print("Deleting frontier artifacts of size", frontier.size)
+        reset_val = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
+        reset_complex = reset_val + reset_val * 1j
+
         if frontier is not None:
             for cell in frontier.cells:
-                self.grid[tuple(cell)] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
+                self.grid[tuple(cell)] = reset_complex
     
     def _perimeter_cells(self, center, max_radius):
         for r in range(max_radius + 1):
@@ -480,7 +512,7 @@ class OccupancyGrid(Grid):
     def find_nearest_free_cell(self, target_cell, max_radius=20):
         # _perimeter_cells is a generator function (yield)
         for cell in self._perimeter_cells(target_cell, max_radius):
-            if self.cell_in_bounds(cell) and self.is_free(self.grid[tuple(cell)]):
+            if self.cell_in_bounds(cell) and self.is_free(self._get_effective_value(self.grid[tuple(cell)])):
                 return cell
             
         return None
@@ -503,32 +535,53 @@ class OccupancyGrid(Grid):
             if not is_reachable and region_size > self.grid_params.MIN_UNREACHABLE_REGION_SIZE:
                 print("Deleting unreachable undiscovered region of size", region_size)
                 component_coords = np.argwhere(component_mask)
-                self.grid[component_coords[:, 0], component_coords[:, 1]] = self.grid_params.UNREACHABLE_REGION_VALUE
+                obs_val = self.grid_params.UNREACHABLE_REGION_VALUE
+                self.grid[component_coords[:, 0], component_coords[:, 1]] = obs_val + obs_val * 1j
     
     def compute_exploration_score(self):
         """Between 0 and 1."""
         self.mark_unreachable_undiscovered_as_obstacles()
         # Cells with values 0 (initialization) are assumed not to have been visited
+        # Check if both real AND imag are 0
         explored_cells = np.sum(self.grid != 0)
         return explored_cells / self.total_cells
 
     def merge_grids(self, other_grid):
         self.grid = (self.grid + other_grid)/2
     
+    def _get_effective_value(self, cell_value):
+        if np.iscomplexobj(cell_value):
+            if cell_value.real != 0:
+                return cell_value.real
+            return cell_value.imag
+        return cell_value
+
+    def _get_effective_grid(self):
+        real_part = self.grid.real
+        imag_part = self.grid.imag
+        use_imag_mask = (real_part == 0)
+        return np.where(use_imag_mask, imag_part, real_part)
+
     def is_free(self, cell_value):
-        return cell_value < GridParams.FREE_THRESHOLD
+        val = self._get_effective_value(cell_value)
+        return val < GridParams.FREE_THRESHOLD
     
     def is_obstacle(self, cell_value):
-        return cell_value > GridParams.OBSTACLE_THRESHOLD
+        val = self._get_effective_value(cell_value)
+        return val > GridParams.OBSTACLE_THRESHOLD
 
     def is_undiscovered(self, cell_value):
-        return GridParams.FREE_THRESHOLD <= cell_value <= GridParams.OBSTACLE_THRESHOLD
+        val = self._get_effective_value(cell_value)
+        return GridParams.FREE_THRESHOLD <= val <= GridParams.OBSTACLE_THRESHOLD
 
     def free_mask(self):
-        return self.grid < GridParams.FREE_THRESHOLD
+        eff = self._get_effective_grid()
+        return eff < GridParams.FREE_THRESHOLD
 
     def obstacle_mask(self):
-        return self.grid > GridParams.OBSTACLE_THRESHOLD
+        eff = self._get_effective_grid()
+        return eff > GridParams.OBSTACLE_THRESHOLD
     
     def undiscovered_mask(self):
-        return np.logical_and(GridParams.FREE_THRESHOLD <= self.grid, self.grid <= GridParams.OBSTACLE_THRESHOLD)
+        eff = self._get_effective_grid()
+        return np.logical_and(GridParams.FREE_THRESHOLD <= eff, eff <= GridParams.OBSTACLE_THRESHOLD)

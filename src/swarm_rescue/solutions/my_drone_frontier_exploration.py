@@ -186,6 +186,10 @@ class MyDroneFrontex(DroneAbstract):
     def min_dist_wounded(self):
         return self.sensor_manager.min_dist_wounded
     
+    @property
+    def is_gps_enabled(self):
+        return self.measured_gps_position() is not None
+    
     # Properties to access state machine-related values
 
     @property
@@ -415,7 +419,7 @@ class MyDroneFrontex(DroneAbstract):
         
         self.position_update()
 
-        self.grid.update(pose=self.estimated_pose)
+        self.grid.update(pose=self.estimated_pose, gps_enabled=self.is_gps_enabled)
         
         if display and (self.timestep_count % 5 == 0):
              self.grid.display(self.grid.zoomed_grid,
