@@ -356,9 +356,6 @@ class OccupancyGrid(Grid):
         
         self._update_obstacles(pose, gps_enabled)
 
-        self.grid.real = np.clip(self.grid.real, self.grid_params.THRESHOLD_MIN, self.grid_params.THRESHOLD_MAX)
-        self.grid.imag = np.clip(self.grid.imag, self.grid_params.THRESHOLD_MIN, self.grid_params.THRESHOLD_MAX)
-
     def _update_free_space(self, pose: PoseEstimator, gps_enabled: bool):
         # Sample lidar data at regular intervals
         lidar_dist = self.lidar.get_sensor_values()[::self.grid_params.EVERY_N].copy()
