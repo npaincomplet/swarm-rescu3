@@ -91,7 +91,10 @@ class Frontier:
         return [self]
 
 class Grid:
-    """Simple complex-valued grid"""
+    """
+    Complex-valued 2D grid
+    Real part and imaginary part of every cell are bounded
+    """
 
     def __init__(self,
                  size_area_world,
@@ -103,6 +106,10 @@ class Grid:
             int(self.size_area_world[0] / self.resolution + 0.5))
         self.y_max_grid: int = (
             int(self.size_area_world[1] / self.resolution + 0.5))
+        
+        # Bounds
+        self.clip_min = GridParams.CLIP_MIN
+        self.clip_max = GridParams.CLIP_MAX
 
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid), dtype=complex)
 
@@ -167,6 +174,18 @@ class Grid:
         
         else:
             raise ValueError(f"Invalid shape for grid_cell: {grid_cell.shape}")
+    
+    def _clip_and_update_values(self, xs, ys, val):
+        """
+        All non-constant updates on the grid must use this function to ensure values are bounded
+        """
+        self.grid[xs, ys] += val
+        
+        current_values = self.grid[xs, ys]
+        clipped_real = np.clip(current_values.real, self.clip_min, self.clip_max)
+        clipped_imag = np.clip(current_values.imag, self.clip_min, self.clip_max)
+        
+        self.grid[xs, ys] = clipped_real + 1j * clipped_imag
         
     def cell_in_bounds(self, cell_coords):
         """
@@ -225,8 +244,7 @@ class Grid:
                 error += dx
         points = np.array(points).T
 
-        # add value to the points
-        self.grid[points[0], points[1]] += val
+        self._clip_and_update_values(points[0], points[1], val)
 
     def add_value_to_points(self, points_coords, val):
         """
@@ -244,23 +262,23 @@ class Grid:
         # Single point case: shape (2,)
         if grid_coords.ndim == 1:
             x_px, y_px = grid_coords
-            if 0 <= x_px < self.x_max_grid and 0 <= y_px < self.y_max_grid:
-                self.grid[int(x_px), int(y_px)] += val
+            if self.cell_in_bounds(grid_coords):
+                self._clip_and_update_values(int(x_px), int(y_px), val)
         
         # Multiple points case: shape (n, 2)
         elif grid_coords.ndim == 2:
-            # Select only points within grid bounds
-            select = np.logical_and(
-                np.logical_and(grid_coords[:, 0] >= 0, grid_coords[:, 0] < self.x_max_grid),
-                np.logical_and(grid_coords[:, 1] >= 0, grid_coords[:, 1] < self.y_max_grid)
-            )
+            x_coords = grid_coords[:, 0]
+            y_coords = grid_coords[:, 1]
             
-            valid_coords = grid_coords[select]
-            if len(valid_coords) > 0:
-                # Convert to integer indices and add values
-                x_indices = valid_coords[:, 0].astype(int)
-                y_indices = valid_coords[:, 1].astype(int)
-                self.grid[x_indices, y_indices] += val
+            # Select only points within grid bounds
+            mask = (x_coords >= 0) & (x_coords < self.x_max_grid) & \
+                   (y_coords >= 0) & (y_coords < self.y_max_grid)
+            
+            valid_x = x_coords[mask].astype(int)
+            valid_y = y_coords[mask].astype(int)
+            
+            if len(valid_x) > 0:
+                self._clip_and_update_values(valid_x, valid_y, val)
 
     def display(self, title="grid"):
         """
@@ -478,7 +496,7 @@ class OccupancyGrid(Grid):
 
     def delete_frontier_artifacts(self, frontier):
         """
-        Set to THRESHOLD_MAX (which relates to OBSTACLE) in the grid all cells of frontier
+        Set to FRONTIER_ARTIFACT_VALUE (which relates to OBSTACLE) in the grid all cells of frontier
         """
         print("Deleting frontier artifacts of size", frontier.size)
         reset_val = GridParams.FRONTIER_ARTIFACT_RESET_VALUE

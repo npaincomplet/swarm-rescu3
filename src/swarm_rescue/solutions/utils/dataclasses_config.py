@@ -97,17 +97,17 @@ class GridParams:
     OBSTACLE_ZONE_VALUE: float = 2.0
     FREE_ZONE_VALUE: float = -4.0
 
-    THRESHOLD_MIN: float = -40.0
-    THRESHOLD_MAX: float = 40.0
-    WORLD_BORDERS_VALUE: float = THRESHOLD_MAX
-    FRONTIER_ARTIFACT_RESET_VALUE: float = THRESHOLD_MAX
+    CLIP_MIN: float = -40.0
+    CLIP_MAX: float = 40.0
+    WORLD_BORDERS_VALUE: float = CLIP_MAX
+    FRONTIER_ARTIFACT_RESET_VALUE: float = CLIP_MAX
 
     # Used for the ternary map conversion
     FREE_THRESHOLD: float = 0
     OBSTACLE_THRESHOLD: float = 0
 
-    MIN_UNREACHABLE_REGION_SIZE: int = 50
-    UNREACHABLE_REGION_VALUE: float = 20.0
+    MIN_UNREACHABLE_REGION_SIZE: int = 30
+    UNREACHABLE_REGION_VALUE: float = CLIP_MAX / 2.0
 
     GRID_DISPLAY_RATIO: float = 0.4
 
