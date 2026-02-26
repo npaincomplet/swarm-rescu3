@@ -137,6 +137,7 @@ class MyDroneFrontex(DroneAbstract):
     def _init_misc(self):
         self.health_manager = HealthManager(self)
         self.last_command = self.null_command
+        self.feature_flags_params = FeatureFlags()
 
     # Properties to access communication-related values
 
@@ -289,7 +290,7 @@ class MyDroneFrontex(DroneAbstract):
 
         self.timestep_count += 1
         
-        self.mapping(display=self.mapping_params.DISPLAY_MAP)
+        self.mapping()
         self.communication_management()
 
         lidar_values = self.lidar_values()
@@ -415,22 +416,22 @@ class MyDroneFrontex(DroneAbstract):
         if self.initial_position is None:
             self.initial_position = self.position
     
-    def mapping(self, display = False):
+    def mapping(self):
         
         self.position_update()
 
         self.grid.update(pose=self.estimated_pose, gps_enabled=self.is_gps_enabled)
-        
-        if display and (self.timestep_count % 5 == 0):
-             self.grid.display(self.grid.zoomed_grid,
-                               self.estimated_pose,
-                               title=f"Drone {self.identifier} zoomed occupancy grid")
     
     def compute_exploration_score(self):
         return self.grid.compute_exploration_score()
 
     def misc_management(self):
         self.health_manager.update()
+
+        display_zoomed_grid = self.feature_flags_params.DISPLAY_ZOOMED_GRID
+        if display_zoomed_grid and (self.timestep_count % 5 == 0):
+            title=f"Drone {self.identifier} zoomed occupancy grid"
+            self.grid.display(title)
 
     def logging_management(self):
         # true_position used only for logging purpose

@@ -4,8 +4,6 @@ import math
 @dataclass
 class MappingParams:
     RESOLUTION: int = 8     # 8 to 1 factor from simulation pixels to grid (efficiency)
-    DISPLAY_MAP: bool = True
-    DISPLAY_BINARY_MAP = True
 
 @dataclass
 class CommunicationParams:
@@ -111,6 +109,8 @@ class GridParams:
     MIN_UNREACHABLE_REGION_SIZE: int = 50
     UNREACHABLE_REGION_VALUE: float = 20.0
 
+    GRID_DISPLAY_RATIO: float = 0.4
+
 @dataclass
 class LocalizationParams:
     # AR1 noise
@@ -128,8 +128,10 @@ class HealthParams:
     HEALTH_MEMORY_SIZE: int = 100
 
 @dataclass
-class BehaviourParams:
-    try_not_couting_drone_as_obstacle: bool = True
+class FeatureFlags:
+    DISPLAY_ZOOMED_GRID: bool = True
+    DISPLAY_PATH: bool = True
+    DISPLAY_FRONTIER: bool = True
 
 @dataclass
 class LogParams:

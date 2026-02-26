@@ -262,22 +262,25 @@ class Grid:
                 y_indices = valid_coords[:, 1].astype(int)
                 self.grid[x_indices, y_indices] += val
 
-    def display(self, grid_to_display: np.ndarray,
-                robot_pose: PoseEstimator, title="grid"):
+    def display(self, title="grid"):
         """
         Screen display of grid and robot pose,
         using opencv (faster than the matplotlib version)
         robot_pose : [x, y, theta] nparray, corrected robot pose
         """
-        img = grid_to_display.T
+        img = self.grid.T
         if np.iscomplexobj(img):
-            img = img.real + img.imag # Visual approximation for debug
+            img = img.real + (img.real==0) * img.imag
         img = img - img.min()
         img = img / img.max() * 255
         img = np.uint8(img)
+
         img_color = cv2.applyColorMap(src=img, colormap=cv2.COLORMAP_JET)
+
+        display_size = tuple(int(dim * GridParams.GRID_DISPLAY_RATIO) for dim in self.size_area_world)
+        img_color_zoomed = cv2.resize(img_color, display_size, interpolation=cv2.INTER_NEAREST)
         
-        cv2.imshow(title, img_color)
+        cv2.imshow(title, img_color_zoomed)
         cv2.waitKey(1)
 
 
@@ -305,8 +308,6 @@ class OccupancyGrid(Grid):
 
         self.lidar = lidar
         self.semantic = semantic
-
-        self.zoomed_grid = self.grid.copy()
 
         self._init_world_borders()
 
@@ -357,8 +358,6 @@ class OccupancyGrid(Grid):
 
         self.grid.real = np.clip(self.grid.real, self.grid_params.THRESHOLD_MIN, self.grid_params.THRESHOLD_MAX)
         self.grid.imag = np.clip(self.grid.imag, self.grid_params.THRESHOLD_MIN, self.grid_params.THRESHOLD_MAX)
-        
-        self._update_zoomed_grid()
 
     def _update_free_space(self, pose: PoseEstimator, gps_enabled: bool):
         # Sample lidar data at regular intervals
@@ -413,14 +412,6 @@ class OccupancyGrid(Grid):
 
         obstacle_points = ray_endpoints[hit_obstacle]
         self.add_value_to_points(obstacle_points, update_value)
-
-    def _update_zoomed_grid(self):
-        zoomed_grid = self.grid.real + self.grid.imag # Simple visualization combination
-        
-        new_zoomed_size = (int(self.size_area_world[1] * 0.5),
-                           int(self.size_area_world[0] * 0.5))
-        self.zoomed_grid = cv2.resize(zoomed_grid, new_zoomed_size,
-                                      interpolation=cv2.INTER_NEAREST)
         
     def _identify_frontier_cells(self, ternary_map):
         """
