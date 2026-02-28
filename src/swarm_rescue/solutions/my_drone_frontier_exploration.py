@@ -15,7 +15,7 @@ from solutions.components.state_handlers import *
 from solutions.components.state_machine import *
 from solutions.components.path_controller import *
 from solutions.components.sensor_manager import SensorManager
-from solutions.components.health_manager import HealthManager
+from solutions.components.memory import DroneMemory
 from solutions.components.visualization_drawer import VisualizationDrawer
 from solutions.utils.data_serializer import PositionTracker
 
@@ -42,7 +42,7 @@ class MyDroneFrontex(DroneAbstract):
         self._init_path_following()
         self._init_logging()
         self._init_visualization()
-        self._init_misc()
+        self._init_memory()
 
     def _init_mapping(self):
         self.mapping_params = MappingParams()
@@ -110,7 +110,6 @@ class MyDroneFrontex(DroneAbstract):
         )
 
     def _init_path_following(self):
-        self.initial_position = None
         self.path_control_params = PathControlParams()
         self.path_controller = PathController(
             self.path_control_params,
@@ -135,9 +134,8 @@ class MyDroneFrontex(DroneAbstract):
         )
         self.visualization_params = VisualizationParams()
 
-    def _init_misc(self):
-        self.health_manager = HealthManager(self)
-        self.last_command = self.null_command
+    def _init_memory(self):
+        self.memory = DroneMemory()
 
     # Properties to access communication-related values
 
@@ -236,11 +234,19 @@ class MyDroneFrontex(DroneAbstract):
         else:
             return None
     
+    @property
+    def initial_position(self):
+        return self.memory.position.initial_value
+    
     # Property misc
 
     @property
     def null_command(self):
         return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+    
+    @property
+    def last_command(self):
+        return self.memory.command.last_value or self.null_command
     
     @property
     def holding_wounded(self):
@@ -313,7 +319,7 @@ class MyDroneFrontex(DroneAbstract):
 
         command = self.state_machine.handle_current_state() or self.null_command
 
-        self.last_command = command
+        self.memory.update(self.position, self.drone_health, command)
 
         return command
 
@@ -412,12 +418,8 @@ class MyDroneFrontex(DroneAbstract):
             holding_wounded=self.holding_wounded,
             messages=[]
         )
-
-        if self.initial_position is None:
-            self.initial_position = self.position
     
     def mapping(self):
-        
         self.position_update()
 
         self.grid.update(pose=self.estimated_pose, gps_enabled=self.is_gps_enabled)
@@ -426,8 +428,6 @@ class MyDroneFrontex(DroneAbstract):
         return self.grid.compute_exploration_score()
 
     def misc_management(self):
-        self.health_manager.update()
-
         display_zoomed_grid = self.visualization_params.DISPLAY_ZOOMED_GRID
         if display_zoomed_grid and (self.timestep_count % 5 == 0):
             title=f"Drone {self.identifier} zoomed occupancy grid"

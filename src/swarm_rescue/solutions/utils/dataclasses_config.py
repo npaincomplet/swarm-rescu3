@@ -135,8 +135,12 @@ class LocalizationParams:
     ODOMETER_THETA_NOISE_STD: float = 1.0 * math.pi / 180.0
 
 @dataclass
-class HealthParams:
-    HEALTH_MEMORY_SIZE: int = 100
+class MemoryParams:
+    TIMESTEPS_PER_SECOND: int = 30
+
+    HEALTH_MEMORY_SIZE: int = 3 * TIMESTEPS_PER_SECOND
+    POSITION_MEMORY_SIZE: int = 3 * TIMESTEPS_PER_SECOND
+    COMMAND_MEMORY_SIZE: int = 1
 
 @dataclass
 class LogParams:
