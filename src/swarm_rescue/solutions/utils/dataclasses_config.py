@@ -75,10 +75,21 @@ class PathPlanningParams:
 
 @dataclass
 class VisualizationParams:
+    _REMOVE_ALL: bool = True
+
     DRAW_POSITION: bool = True
     DRAW_PATH: bool = True
     DRAW_FRONTIER_CENTROID: bool = True
     DRAW_FRONTIER_POINTS: bool = True
+    DISPLAY_ZOOMED_GRID: bool = True
+
+    def __post_init__(self):
+        if self._REMOVE_ALL:
+            self.DRAW_POSITION = False
+            self.DRAW_PATH = False
+            self.DRAW_FRONTIER_CENTROID = False
+            self.DRAW_FRONTIER_POINTS = False
+            self.DISPLAY_ZOOMED_GRID = False
 
 @dataclass  # Relative to grids.py
 class GridParams:
@@ -126,12 +137,6 @@ class LocalizationParams:
 @dataclass
 class HealthParams:
     HEALTH_MEMORY_SIZE: int = 100
-
-@dataclass
-class FeatureFlags:
-    DISPLAY_ZOOMED_GRID: bool = True
-    DISPLAY_PATH: bool = True
-    DISPLAY_FRONTIER: bool = True
 
 @dataclass
 class LogParams:

@@ -133,11 +133,11 @@ class MyDroneFrontex(DroneAbstract):
             half_size_array=self._half_size_array,
             conv_grid_to_world=self.grid._conv_grid_to_world
         )
+        self.visualization_params = VisualizationParams()
 
     def _init_misc(self):
         self.health_manager = HealthManager(self)
         self.last_command = self.null_command
-        self.feature_flags_params = FeatureFlags()
 
     # Properties to access communication-related values
 
@@ -428,7 +428,7 @@ class MyDroneFrontex(DroneAbstract):
     def misc_management(self):
         self.health_manager.update()
 
-        display_zoomed_grid = self.feature_flags_params.DISPLAY_ZOOMED_GRID
+        display_zoomed_grid = self.visualization_params.DISPLAY_ZOOMED_GRID
         if display_zoomed_grid and (self.timestep_count % 5 == 0):
             title=f"Drone {self.identifier} zoomed occupancy grid"
             self.grid.display(title)
