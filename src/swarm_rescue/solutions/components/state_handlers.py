@@ -112,27 +112,14 @@ class GoingRescueCenterState(DroneState):
 
         return command
 
-
-class ExploringFrontiersState(DroneState):
-    def on_enter(self):
-        self.drone.plan_path_to_frontier()
-
+class ChoosingNewFrontierState(DroneState):
     def handle(self):
-        if self.drone.path_controller.finished_path:
-            self.drone.plan_path_to_frontier()
-
-        if self.drone.explored_all_frontiers or self.drone.path_controller.path is None:
-            # Return waiting behavior without changing state
-            self.drone.reset_path_params()
-            self.drone.step_waiting_count += 1
-            return self.drone.null_command
-        else:
-            return self.drone.follow_path()
-        
-    def on_exit(self):
-        self.drone.reset_path_params()
-        self.drone.next_frontier = None
-
+        self.drone.plan_path_to_frontier()
+        return self.drone.null_command
+    
+class GoingToFrontierState(DroneState):
+    def handle(self):
+        return self.drone.follow_path()
 
 class EvaluateEndOfMissionState(DroneState):
     def handle(self):

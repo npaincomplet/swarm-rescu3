@@ -74,7 +74,6 @@ class MyDroneFrontex(DroneAbstract):
         
         # Frontier exploration
         self.exploring_frontiers_params = ExploringFrontiersParams
-        self.explored_all_frontiers = False
         self.next_frontier = None
 
         # Wall following
@@ -239,6 +238,10 @@ class MyDroneFrontex(DroneAbstract):
         return self.memory.position.is_moving() or self.memory.orientation.is_rotating()
     
     # Property to access exploration-related values
+
+    @property
+    def no_available_frontier(self):
+        return len(self.grid.frontiers) == 0
     
     @property
     def next_frontier_centroid(self):
@@ -276,12 +279,13 @@ class MyDroneFrontex(DroneAbstract):
     def get_sensor_conditions(self):
         is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=30.0)
 
-        if len(self.grid.frontiers) == 0:
+        if self.no_available_frontier:
             sufficient_exploration_score = self.compute_exploration_score() > self.end_of_mission_params.MIN_EXPLORATION_SCORE
         else:
             sufficient_exploration_score = False
         
         return {
+            "finished_path": self.path_controller.finished_path,
             "near_obstacle": self.near_obstacle,
             "lost_wall": not self.near_obstacle,
             "found_wounded": self.found_wounded,
@@ -290,7 +294,7 @@ class MyDroneFrontex(DroneAbstract):
             "found_rescue_center": self.found_rescue_center,
             "is_too_close_to_rescue_center": self.is_too_close_to_rescue_center,
             "lost_rescue_center": not self.grasper.grasped_wounded_persons,
-            "no_frontiers_left": len(self.grid.frontiers) == 0,
+            "no_available_frontier": self.no_available_frontier,
             "waiting_time_over": self.step_waiting_count >= self.waiting_params.STEP_WAITING,
             "is_near_rescuing_drone": is_near_rescuing_drone,
             "just_took_damage": self.just_took_damage,
@@ -399,11 +403,9 @@ class MyDroneFrontex(DroneAbstract):
             path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=False)
             if path is None:
                 self.grid.delete_frontier_artifacts(self.next_frontier)
+                self.path_controller.reset_path()
             else:
                 self.path_controller.set_path(path, self.position)
-
-        else:
-            self.explored_all_frontiers = True
 
     def plan_path_to_return_area(self):
         start_pos = self.position

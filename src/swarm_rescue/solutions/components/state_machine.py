@@ -10,7 +10,8 @@ class DroneState(Enum):
         SEARCHING_WALL = auto()     # Assigns 2 etc ... This allows to easily add new states
         FOLLOWING_WALL = auto()
 
-        EXPLORING_FRONTIERS = auto()
+        CHOOSING_NEW_FRONTIER = auto()
+        GOING_TO_FRONTIER = auto()
 
         GRASPING_WOUNDED = auto()
         SEARCHING_RESCUE_CENTER = auto()
@@ -36,7 +37,8 @@ class DroneStateMachine:
             DroneState.GRASPING_WOUNDED: GraspingWoundedState(drone),
             DroneState.SEARCHING_RESCUE_CENTER: SearchingRescueCenterState(drone),
             DroneState.GOING_RESCUE_CENTER: GoingRescueCenterState(drone),
-            DroneState.EXPLORING_FRONTIERS: ExploringFrontiersState(drone),
+            DroneState.CHOOSING_NEW_FRONTIER: ChoosingNewFrontierState(drone),
+            DroneState.GOING_TO_FRONTIER: GoingToFrontierState(drone),
             DroneState.EVALUATE_END_OF_MISSION: EvaluateEndOfMissionState(drone),
             DroneState.END_OF_MISSION: EndOfMissionState(drone),
         }
@@ -45,7 +47,7 @@ class DroneStateMachine:
         self.transitions = {
             DroneState.WAITING: {
                 "found_wounded": DroneState.GRASPING_WOUNDED,
-                "waiting_time_over": DroneState.EXPLORING_FRONTIERS
+                "waiting_time_over": DroneState.CHOOSING_NEW_FRONTIER
             },
             DroneState.GRASPING_WOUNDED: {
                 "lost_wounded": DroneState.WAITING,
@@ -59,9 +61,12 @@ class DroneStateMachine:
                 "lost_rescue_center": DroneState.WAITING,
                 "is_too_close_to_rescue_center": DroneState.WAITING
             },
-            DroneState.EXPLORING_FRONTIERS: {
+            DroneState.CHOOSING_NEW_FRONTIER: {
+                "no_available_frontier": DroneState.EVALUATE_END_OF_MISSION
+            },
+            DroneState.GOING_TO_FRONTIER: {
+                "finished_path": DroneState.CHOOSING_NEW_FRONTIER,
                 "found_wounded": DroneState.GRASPING_WOUNDED,
-                "no_frontiers_left": DroneState.EVALUATE_END_OF_MISSION,
                 "is_near_rescuing_drone": DroneState.WAITING
             },
             DroneState.EVALUATE_END_OF_MISSION: {
