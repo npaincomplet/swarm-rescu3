@@ -102,8 +102,10 @@ class GridParams:
     FRONTIER_SPLIT_THRESHOLD: float = 2.0   # radians
 
     EVERY_N: int = 3
-    LIDAR_DIST_CLIP: float = 40.0
-    MAX_RANGE_LIDAR_SENSOR_FACTOR: float = 0.9
+    MAX_LIDAR_DIST_CLIP: float = 40.0
+    LIDAR_NOISE_STD: float = 2.5
+    LIDAR_OBSTACLE_MARGIN:float = 4.0 * LIDAR_NOISE_STD
+
     EMPTY_ZONE_VALUE: float = -0.602
     OBSTACLE_ZONE_VALUE: float = 2.0
     FREE_ZONE_VALUE: float = -4.0

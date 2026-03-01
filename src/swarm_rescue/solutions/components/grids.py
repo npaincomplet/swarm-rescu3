@@ -383,9 +383,10 @@ class OccupancyGrid(Grid):
         cos_rays = np.cos(lidar_angles + pose.orientation)
         sin_rays = np.sin(lidar_angles + pose.orientation)
 
-        # Clip lidar distances to ensure (probabilistically) true noiseless lidar distance is not exceeded
-        confidence_dist = lidar_dist - self.grid_params.LIDAR_DIST_CLIP
-        np.clip(confidence_dist, 0, MAX_RANGE_LIDAR_SENSOR)
+        # Clip lidar distances to ensure (probabilistically) true noiseless lidar distance (plus position estimator error) is not exceeded
+        clip_dist = self.grid_params.MAX_LIDAR_DIST_CLIP * (lidar_dist / MAX_RANGE_LIDAR_SENSOR)
+        confidence_dist = lidar_dist - clip_dist
+        np.clip(confidence_dist, 0, MAX_RANGE_LIDAR_SENSOR, out=confidence_dist)
 
         # Calculate points we are confident form a free line starting from the drone position
         ray_confidence_endpoints = np.column_stack((
@@ -413,8 +414,8 @@ class OccupancyGrid(Grid):
 
         # Ray hits an obstacle iff true noiseless lidar distance is less than MAX_RANGE
         # To tackle the added noise we use a safety threshold
-        no_obstacle_threshold = MAX_RANGE_LIDAR_SENSOR - self.grid_params.LIDAR_DIST_CLIP
-        hit_obstacle = lidar_dist < no_obstacle_threshold
+        no_obstacle_threshold = MAX_RANGE_LIDAR_SENSOR - self.grid_params.LIDAR_OBSTACLE_MARGIN
+        ray_hit_obstacle = lidar_dist < no_obstacle_threshold
 
         update_value = self.grid_params.OBSTACLE_ZONE_VALUE
         if not gps_enabled:
@@ -425,7 +426,7 @@ class OccupancyGrid(Grid):
             pose.position[1] + np.multiply(lidar_dist, sin_rays)
         ))
 
-        obstacle_points = ray_endpoints[hit_obstacle]
+        obstacle_points = ray_endpoints[ray_hit_obstacle]
         self.add_value_to_points(obstacle_points, update_value)
         
     def _identify_frontier_cells(self, ternary_map):
