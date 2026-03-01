@@ -73,6 +73,7 @@ class MyDroneFrontex(DroneAbstract):
         self.grasping_params = GraspingParams()
         
         # Frontier exploration
+        self.exploring_frontiers_params = ExploringFrontiersParams
         self.explored_all_frontiers = False
         self.next_frontier = None
 
@@ -360,7 +361,13 @@ class MyDroneFrontex(DroneAbstract):
         for i, drone_pos in enumerate(drone_positions):
             for j, frontier in enumerate(frontiers):
                 centroid = frontier.compute_centroid_pos()
-                cost_matrix[i, j] = np.linalg.norm(drone_pos - centroid) / (frontier.size + 1)
+                distance = np.linalg.norm(drone_pos - centroid)
+                cost = distance / (frontier.size + 1)
+                
+                if self.grid.check_line_of_sight(drone_pos, centroid):
+                    cost *= self.exploring_frontiers_params.LINE_OF_SIGHT_COST_MULTIPLIER
+                
+                cost_matrix[i, j] = cost    # Using A* distance as a cost would be optimal but too cost-intensive
 
         row_ind, col_ind = linear_sum_assignment(cost_matrix)   # row_ind are drone indices in drone_positins and sorted, col_ind are frontier indices
 

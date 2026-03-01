@@ -4,6 +4,7 @@ from swarm_rescue.simulation.utils.constants import MAX_RANGE_LIDAR_SENSOR
 from solutions.components.pose import PoseEstimator
 from solutions.components.astar import *
 from solutions.utils.dataclasses_config import *
+from solutions.utils.utils import bresenham
 
 from sklearn.cluster import DBSCAN
 
@@ -523,6 +524,26 @@ class OccupancyGrid(Grid):
                 return cell
             
         return None
+    
+    def check_line_of_sight(self, start_coords, end_coords):
+        """
+        Check if there is a direct line of sight between start and end coordinates.
+        Returns True if the line does not pass through obstacles, False otherwise.
+        Input in world coordinates.
+        """
+        start_cell = self._conv_world_to_grid(start_coords)
+        end_cell = self._conv_world_to_grid(end_coords)
+
+        if not self.cell_in_bounds(start_cell) or not self.cell_in_bounds(end_cell):
+            return False
+        
+        for cell in bresenham(start_cell, end_cell):
+            if not self.cell_in_bounds(cell):
+                return False
+            if self.is_obstacle(self._get_effective_value(self.grid[tuple(cell)])):
+                return False
+            
+        return True
 
     def mark_unreachable_undiscovered_as_obstacles(self):
         undiscovered_mask = self.undiscovered_mask().astype(np.uint8)

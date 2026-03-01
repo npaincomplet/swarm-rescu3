@@ -21,6 +21,10 @@ class GraspingParams:
     WOUNDED_CONFLICT_THRESHOLD: float = 20.0
 
 @dataclass
+class ExploringFrontiersParams:
+    LINE_OF_SIGHT_COST_MULTIPLIER: float = 0.5
+
+@dataclass
 class WallFollowingParams:
     DMAX: float = 60.0
     DIST_TO_STAY: float = 40.0
