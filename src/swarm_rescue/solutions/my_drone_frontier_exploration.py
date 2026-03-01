@@ -240,7 +240,12 @@ class MyDroneFrontex(DroneAbstract):
     # Property to access exploration-related values
 
     @property
+    def frontiers(self):
+        return self.grid.frontiers()
+
+    @property
     def no_available_frontier(self):
+        """Might be stale as self.grid.frontiers is only updated in ChoosingNewFrontierState.on_enter()"""
         return len(self.grid.frontiers) == 0
     
     @property
@@ -357,10 +362,12 @@ class MyDroneFrontex(DroneAbstract):
     
     def assign_frontier(self):
         """
+        Frontiers are updated in ChoosingNewFrontierState (state_handlers.py).
+
         Frontier assignment does not assume perfect information sharing between drones.
         Locally, each drone d1 is assigned to a frontier that would be optimal (in terms of task sharing) if each drone had the same information as d1.
         """
-        frontiers = self.grid.update_frontiers()
+        frontiers = self.grid.frontiers
         if not frontiers:
             return None
 
@@ -394,7 +401,7 @@ class MyDroneFrontex(DroneAbstract):
 
     def plan_path_to_frontier(self):
         assigned_frontier = self.assign_frontier()
-        
+
         if assigned_frontier is not None:
             self.next_frontier = assigned_frontier
 

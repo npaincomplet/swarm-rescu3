@@ -113,6 +113,9 @@ class GoingRescueCenterState(DroneState):
         return command
 
 class ChoosingNewFrontierState(DroneState):
+    def on_enter(self):
+        self.drone.grid.update_frontiers()
+
     def handle(self):
         self.drone.plan_path_to_frontier()
         return self.drone.null_command
