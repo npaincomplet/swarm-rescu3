@@ -62,6 +62,7 @@ class DroneStateMachine:
                 "is_too_close_to_rescue_center": DroneState.WAITING
             },
             DroneState.CHOOSING_NEW_FRONTIER: {
+                "available_frontier": DroneState.GOING_TO_FRONTIER,
                 "no_available_frontier": DroneState.EVALUATE_END_OF_MISSION
             },
             DroneState.GOING_TO_FRONTIER: {

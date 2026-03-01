@@ -73,7 +73,7 @@ class MyDroneFrontex(DroneAbstract):
         self.grasping_params = GraspingParams()
         
         # Frontier exploration
-        self.exploring_frontiers_params = ExploringFrontiersParams
+        self.exploring_frontiers_params = ExploringFrontiersParams()
         self.next_frontier = None
 
         # Wall following
@@ -294,6 +294,7 @@ class MyDroneFrontex(DroneAbstract):
             "found_rescue_center": self.found_rescue_center,
             "is_too_close_to_rescue_center": self.is_too_close_to_rescue_center,
             "lost_rescue_center": not self.grasper.grasped_wounded_persons,
+            "available_frontier": not self.no_available_frontier,
             "no_available_frontier": self.no_available_frontier,
             "waiting_time_over": self.step_waiting_count >= self.waiting_params.STEP_WAITING,
             "is_near_rescuing_drone": is_near_rescuing_drone,
