@@ -50,7 +50,7 @@ class VisualizationDrawer:
             self.draw_all_pose_estimators(pose_estimator_manager)
 
         if current_state == DroneState.EXPLORING_FRONTIERS:
-            if self.visualization_params.DRAW_FRONTIER_CENTROID and next_frontier.compute_centroid_pos() is not None:
+            if self.visualization_params.DRAW_FRONTIER_CENTROID and next_frontier is not None:
                 self.draw_point(next_frontier.compute_centroid_pos() + self._half_size_array)
             
             if self.visualization_params.DRAW_FRONTIER_POINTS and next_frontier is not None:
