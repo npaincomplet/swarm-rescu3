@@ -131,13 +131,22 @@ class PathController:
         return command
     
     def obstacle_avoidance_lateral_offset(self, lidar_values, ray_angles):
-        #epsilon_wall_distance = self.drone.min_dist_wall - self.drone.DIST_TO_STAY
-        obstacle_lidar_values = lidar_values*(lidar_values<=self.path_params.MAX_INFLATION_OBSTACLE)
+        """
+        Calculates a lateral offset distance to avoid very close obstacles.
+        """
+        close_obstacle_mask = (lidar_values <= self.path_params.MAX_INFLATION_OBSTACLE)
         
-        offset_lidar_values = obstacle_lidar_values * self.offset_mask
+        if not np.any(close_obstacle_mask):
+            return 0.0
 
-        signed_offset = np.sum(offset_lidar_values)/np.sum(self.offset_mask != 0)
-        side = np.sign(signed_offset)
-        offset = side * (self.path_params.MAX_INFLATION_OBSTACLE - abs(signed_offset))
+        relevant_lidar = lidar_values[close_obstacle_mask]
+        relevant_offset_mask = self.offset_mask[close_obstacle_mask]
 
-        return offset
+        # Calculate repulsion: closer obstacles create larger values.
+        repulsion_magnitude = self.path_params.MAX_INFLATION_OBSTACLE - relevant_lidar
+        
+        weighted_repulsion = repulsion_magnitude * relevant_offset_mask
+        
+        total_offset = np.mean(weighted_repulsion)
+
+        return total_offset
