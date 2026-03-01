@@ -24,10 +24,38 @@ class History:
 class PositionHistory(History):
     def __init__(self):
         super().__init__(MemoryParams.POSITION_MEMORY_SIZE)
+        self.is_moving_threshold = MemoryParams.IS_MOVING_THRESHOLD
     
     def update(self, position: np.ndarray):
         pos_copy = position.copy()
         super().update(pos_copy)
+
+    def is_moving(self) -> bool:
+        if len(self._history) < 2:
+            return False
+        
+        vector_displacements = np.array([self._history[i+1] - self._history[i] for i in range(len(self._history) - 1)])
+        distance_displacements = np.linalg.norm(vector_displacements, axis=1)
+        return np.max(distance_displacements) > self.is_moving_threshold
+
+class OrientationHistory(History):
+    def __init__(self):
+        super().__init__(MemoryParams.POSITION_MEMORY_SIZE)
+        self.is_rotating_threshold = MemoryParams.IS_ROTATING_THRESHOLD
+    
+    def update(self, orientation: float):
+        super().update(orientation)
+    
+    def is_rotating(self) -> bool:
+        if len(self._history) < 2:
+            return False
+        
+        angle_diffs = []
+        for i in range(len(self._history) - 1):
+            diff = abs(self._history[i+1] - self._history[i])
+            diff = min(diff, 2 * np.pi - diff)
+            angle_diffs.append(diff)
+        return max(angle_diffs) > self.is_rotating_threshold
 
 class HealthHistory(History):
     def __init__(self):
@@ -51,10 +79,12 @@ class CommandHistory(History):
 class DroneMemory:
     def __init__(self):
         self.position = PositionHistory()
+        self.orientation = OrientationHistory()
         self.health = HealthHistory()
         self.command = CommandHistory()
 
-    def update(self, current_pos: np.ndarray, current_health: float, command):
+    def update(self, current_pos: np.ndarray, current_orientation: float, current_health: float, command):
         self.position.update(current_pos)
+        self.orientation.update(current_orientation)
         self.health.update(current_health)
         self.command.update(command)

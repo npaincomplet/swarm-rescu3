@@ -224,6 +224,10 @@ class MyDroneFrontex(DroneAbstract):
     def orientation(self):
         return self.active_pose_estimator.orientation
     
+    @property
+    def is_moving(self):
+        return self.memory.position.is_moving() or self.memory.orientation.is_rotating()
+    
     # Property to access exploration-related values
     
     @property
@@ -319,7 +323,7 @@ class MyDroneFrontex(DroneAbstract):
 
         command = self.state_machine.handle_current_state() or self.null_command
 
-        self.memory.update(self.position, self.drone_health, command)
+        self.memory.update(self.position, self.orientation, self.drone_health, command)
 
         return command
 
