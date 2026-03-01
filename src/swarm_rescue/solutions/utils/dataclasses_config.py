@@ -17,7 +17,8 @@ class WaitingStateParams:
 @dataclass
 class GraspingParams:
     GRASPING_SPEED: float = 0.3
-    GRASPING_DIST: int = 30
+    GRASPING_DISTANCE: float = 30.0
+    GRASPING_ANGLE: float = 10 * math.pi / 180
     WOUNDED_CONFLICT_THRESHOLD: float = 20.0
 
 @dataclass

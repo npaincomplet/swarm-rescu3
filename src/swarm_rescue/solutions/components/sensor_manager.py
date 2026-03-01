@@ -20,7 +20,7 @@ class SensorManager:
         # Semantic sensor values
         self.found_wounded = False
         self.found_rescue_center = False
-        self.epsilon_wounded = 0.0
+        self.epsilon_wounded = 1000.0
         self.epsilon_rescue_center = 0.0
         self.is_near_rescue_center = False
         self.min_dist_wounded = 1000.0

@@ -187,6 +187,14 @@ class MyDroneFrontex(DroneAbstract):
         return self.sensor_manager.min_dist_wounded
     
     @property
+    def within_grasping_distance(self):
+        return self.found_wounded and self.min_dist_wounded < self.grasping_params.GRASPING_DISTANCE
+    
+    @property
+    def within_grasping_angle(self):
+        return self.found_wounded and self.epsilon_wounded < self.grasping_params.GRASPING_ANGLE
+    
+    @property
     def is_gps_enabled(self):
         return self.measured_gps_position() is not None
     
@@ -277,7 +285,7 @@ class MyDroneFrontex(DroneAbstract):
             "lost_wall": not self.near_obstacle,
             "found_wounded": self.found_wounded,
             "holding_wounded": self.holding_wounded,
-            "lost_wounded": not self.found_wounded and not self.grasper.grasped_wounded_persons,
+            "lost_wounded": not self.found_wounded and not self.holding_wounded,
             "found_rescue_center": self.found_rescue_center,
             "lost_rescue_center": not self.grasper.grasped_wounded_persons,
             "no_frontiers_left": len(self.grid.frontiers) == 0,

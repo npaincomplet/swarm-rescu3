@@ -68,11 +68,13 @@ class FollowingWallState(DroneState):
 
 class GraspingWoundedState(DroneState):
     def handle(self):
+        ready_to_grasp = self.drone.within_grasping_distance and self.drone.within_grasping_angle
+
         command = {
             "forward": self.drone.grasping_params.GRASPING_SPEED, 
             "lateral": 0.0, 
-            "rotation": 0.0, 
-            "grasper": 1 if self.drone.min_dist_wounded < self.drone.grasping_params.GRASPING_DIST else 0
+            "rotation": 0.0,
+            "grasper": ready_to_grasp
         }
         
         return self.drone.rotation_pid.update_command(
@@ -107,10 +109,6 @@ class GoingRescueCenterState(DroneState):
             self.drone.epsilon_rescue_center, 
             self.drone.odometer_values()
         )
-
-        if self.drone.is_near_rescue_center:
-            command["forward"] = 0.0
-            command["rotation"] = 1.0  # Rotate in place to drop off
 
         return command
 
