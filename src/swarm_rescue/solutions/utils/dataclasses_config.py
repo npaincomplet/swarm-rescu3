@@ -138,7 +138,7 @@ class LocalizationParams:
 class MemoryParams:
     TIMESTEPS_PER_SECOND: int = 30
 
-    HEALTH_MEMORY_SIZE: int = 3 * TIMESTEPS_PER_SECOND
+    HEALTH_MEMORY_SIZE: int = 2
     POSITION_MEMORY_SIZE: int = 1 * TIMESTEPS_PER_SECOND
     COMMAND_MEMORY_SIZE: int = 1
 

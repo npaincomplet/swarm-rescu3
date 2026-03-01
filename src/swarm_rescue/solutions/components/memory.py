@@ -58,13 +58,19 @@ class OrientationHistory(History):
         return max(angle_diffs) > self.is_rotating_threshold
 
 class HealthHistory(History):
+    """
+    Health is an integer. 
+    For any type of collision (speed, object), drone looses 1 point of health.
+    Health loss is capped at 1 point per second.
+    Therefore, just_took_damage can evaluate to True at max once per second.
+    """
     def __init__(self):
         super().__init__(MemoryParams.HEALTH_MEMORY_SIZE)
 
     def update(self, health_value: float):
         super().update(health_value)
 
-    def has_lost_health(self) -> bool:
+    def just_took_damage(self) -> bool:
         if len(self._history) < 2:
             return False
         return self._history[-1] < self._history[-2]

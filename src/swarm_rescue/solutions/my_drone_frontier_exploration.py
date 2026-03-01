@@ -255,6 +255,10 @@ class MyDroneFrontex(DroneAbstract):
     @property
     def holding_wounded(self):
         return bool(self.grasper.grasped_wounded_persons)
+    
+    @property
+    def just_took_damage(self):
+        return self.memory.health.just_took_damage()
 
     def reset_path_params(self):
         self.path_controller.reset_path()
@@ -278,6 +282,7 @@ class MyDroneFrontex(DroneAbstract):
             "no_frontiers_left": len(self.grid.frontiers) == 0,
             "waiting_time_over": self.step_waiting_count >= self.waiting_params.STEP_WAITING,
             "is_near_rescuing_drone": is_near_rescuing_drone,
+            "just_took_damage": self.just_took_damage,
             "sufficient_exploration_score": sufficient_exploration_score,
             "insufficient_exploration_score": not sufficient_exploration_score
         }
