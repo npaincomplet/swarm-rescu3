@@ -179,8 +179,9 @@ class MyDroneFrontex(DroneAbstract):
         return self.sensor_manager.epsilon_rescue_center
         
     @property
-    def is_near_rescue_center(self):
-        return self.sensor_manager.is_near_rescue_center
+    def is_too_close_to_rescue_center(self):
+        """Usually means that the drone can't drop the wounded person in the rescue center"""
+        return self.sensor_manager.is_too_close_to_rescue_center
         
     @property
     def min_dist_wounded(self):
@@ -287,6 +288,7 @@ class MyDroneFrontex(DroneAbstract):
             "holding_wounded": self.holding_wounded,
             "lost_wounded": not self.found_wounded and not self.holding_wounded,
             "found_rescue_center": self.found_rescue_center,
+            "is_too_close_to_rescue_center": self.is_too_close_to_rescue_center,
             "lost_rescue_center": not self.grasper.grasped_wounded_persons,
             "no_frontiers_left": len(self.grid.frontiers) == 0,
             "waiting_time_over": self.step_waiting_count >= self.waiting_params.STEP_WAITING,

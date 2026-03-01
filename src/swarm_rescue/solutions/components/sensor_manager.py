@@ -22,7 +22,7 @@ class SensorManager:
         self.found_rescue_center = False
         self.epsilon_wounded = 1000.0
         self.epsilon_rescue_center = 0.0
-        self.is_near_rescue_center = False
+        self.is_too_close_to_rescue_center = False
         self.min_dist_wounded = 1000.0
         
     def reset_semantic_sensor_values(self):
@@ -30,7 +30,7 @@ class SensorManager:
         self.found_rescue_center = False
         self.epsilon_wounded = 0.0
         self.epsilon_rescue_center = 0.0
-        self.is_near_rescue_center = False
+        self.is_too_close_to_rescue_center = False
         self.min_dist_wounded = 1000.0
     
     def process_lidar_sensor(self, lidar_values, ray_angles):
@@ -68,8 +68,8 @@ class SensorManager:
                 angles_list.append(data.angle)
 
                 self.found_rescue_center = True
-                if data.distance < self.sensor_params.RESCUE_CENTER_DETECTION_THRESHOLD:
-                    self.is_near_rescue_center = True
+                if data.distance < self.sensor_params.TOO_CLOSE_TO_RESCUE_CENTER_THRESHOLD:
+                    self.is_too_close_to_rescue_center = True
             
             # If the wounded person detected is held by nobody
             elif (data.entity_type == DroneSemanticSensor.TypeEntity.WOUNDED_PERSON 

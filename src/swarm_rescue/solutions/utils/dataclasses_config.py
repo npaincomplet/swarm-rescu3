@@ -38,7 +38,7 @@ class EndOfMissionParams:
 
 @dataclass
 class SensorParams:
-    RESCUE_CENTER_DETECTION_THRESHOLD: float = 30.0
+    TOO_CLOSE_TO_RESCUE_CENTER_THRESHOLD: float = 10.0
     NEAR_OBSTACLE_THRESHOLD: float = WallFollowingParams.DMAX # Beware of the circular dependency with WallFollowingParams
 
 @dataclass

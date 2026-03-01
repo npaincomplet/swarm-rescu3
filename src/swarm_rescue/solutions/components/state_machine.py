@@ -56,7 +56,8 @@ class DroneStateMachine:
                 "found_rescue_center": DroneState.GOING_RESCUE_CENTER
             },
             DroneState.GOING_RESCUE_CENTER: {
-                "lost_rescue_center": DroneState.WAITING
+                "lost_rescue_center": DroneState.WAITING,
+                "is_too_close_to_rescue_center": DroneState.WAITING
             },
             DroneState.EXPLORING_FRONTIERS: {
                 "found_wounded": DroneState.GRASPING_WOUNDED,
