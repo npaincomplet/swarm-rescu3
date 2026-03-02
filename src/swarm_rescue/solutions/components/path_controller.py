@@ -13,22 +13,36 @@ class PathController:
         self.path = []
         self.path_grid = []
 
-        self._init_offset_mask(ray_angles)
+        self._init_lateral_offset_mask(ray_angles)
+        self._init_longitudinal_offset_mask(ray_angles)
     
-    def _init_offset_mask(self, ray_angles):
+    def _init_lateral_offset_mask(self, ray_angles):
         """
-        Mask used on lidar_values for obstacle avoidance.
-        Helps to determine the lateral error to apply.
+        Mask used on lidar_values for obstacle avoidance (lateral).
         """
-        offset_mask = np.zeros_like(ray_angles)
+        lateral_offset_mask = np.zeros_like(ray_angles)
         
         # Set -1 (translate right laterally) for left side rays
-        offset_mask[ray_angles >= 0] = -1
+        lateral_offset_mask[ray_angles >= 0] = -1
         
         # Set +1 (translate left laterally) for right side rays
-        offset_mask[ray_angles <= 0] = 1
+        lateral_offset_mask[ray_angles <= 0] = 1
 
-        self.offset_mask = offset_mask
+        self.lateral_offset_mask = lateral_offset_mask
+
+    def _init_longitudinal_offset_mask(self, ray_angles):
+        """
+        Mask used on lidar_values for obstacle avoidance (forward/backward).
+        """
+        longitudinal_offset_mask = np.zeros_like(ray_angles)
+        
+        # Front rays defined by abs(angle) < pi/2 -> push backward (-1)
+        longitudinal_offset_mask[np.abs(ray_angles) < np.pi/2] = -1
+        
+        # Back rays defined by abs(angle) >= pi/2 -> push forward (+1)
+        longitudinal_offset_mask[np.abs(ray_angles) >= np.pi/2] = 1
+        
+        self.longitudinal_offset_mask = longitudinal_offset_mask
     
     def reset_path(self):
         self.finished_path = True
@@ -138,7 +152,7 @@ class PathController:
         else:
             perpendicular_distance = -np.cross(direction_unit, drone_vector) # Orthogonal distance from drone to the path segment
 
-        perpendicular_error = perpendicular_distance + self.obstacle_avoidance_lateral_offset(lidar_values, ray_angles)
+        perpendicular_error = perpendicular_distance + self.obstacle_avoidance_lateral_offset(lidar_values)
 
         if abs(angle_error) <= self.path_params.MAX_ANGLE_ERROR: # Allow lateral control only if the angle error is within a certain threshold
             command = self.lateral_pid.update_command(
@@ -153,16 +167,18 @@ class PathController:
         else:
             parallel_distance = np.linalg.norm(direction_vector) - np.dot(direction_unit, drone_vector) # Remaining distance to waypoint along the path
 
+        parallel_error = parallel_distance + self.obstacle_avoidance_longitudinal_offset(lidar_values)
+
         if abs(angle_error) <= self.path_params.MAX_ANGLE_ERROR: # Allow forward control only if the angle error is within a certain threshold
             command = self.forward_pid.update_command(
                 command,
-                parallel_distance,
+                parallel_error,
                 odometer_values
             )
         
         return command
     
-    def obstacle_avoidance_lateral_offset(self, lidar_values, ray_angles):
+    def obstacle_avoidance_lateral_offset(self, lidar_values):
         """
         Calculates a lateral offset distance to avoid very close obstacles.
         """
@@ -172,7 +188,28 @@ class PathController:
             return 0.0
 
         relevant_lidar = lidar_values[close_obstacle_mask]
-        relevant_offset_mask = self.offset_mask[close_obstacle_mask]
+        relevant_offset_mask = self.lateral_offset_mask[close_obstacle_mask]
+
+        # Calculate repulsion: closer obstacles create larger values.
+        repulsion_magnitude = self.path_params.MAX_INFLATION_OBSTACLE - relevant_lidar
+        
+        weighted_repulsion = repulsion_magnitude * relevant_offset_mask
+        
+        total_offset = np.mean(weighted_repulsion)
+
+        return total_offset
+    
+    def obstacle_avoidance_longitudinal_offset(self, lidar_values):
+        """
+        Calculates a forward/backward offset distance to avoid very close obstacles.
+        """
+        close_obstacle_mask = (lidar_values <= self.path_params.MAX_INFLATION_OBSTACLE)
+        
+        if not np.any(close_obstacle_mask):
+            return 0.0
+
+        relevant_lidar = lidar_values[close_obstacle_mask]
+        relevant_offset_mask = self.longitudinal_offset_mask[close_obstacle_mask]
 
         # Calculate repulsion: closer obstacles create larger values.
         repulsion_magnitude = self.path_params.MAX_INFLATION_OBSTACLE - relevant_lidar
