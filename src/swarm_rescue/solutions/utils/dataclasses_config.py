@@ -57,11 +57,14 @@ class PIDParams:
 
 @dataclass
 class PathControlParams:
-    DISTANCE_CLOSE_WAYPOINT: int = 20
+    DISTANCE_CLOSE_WAYPOINT: float = 20.0
     SPEED_CLOSE_WAYPOINT: float = 2.0
     MAX_INFLATION_OBSTACLE: float = 20.0
 
     MAX_ANGLE_ERROR: float = math.pi / 15
+
+    THRESHOLD_BLOCKED_PATH: float = 20.0
+    OBSTACLE_CONE_ANGLE: float = 20.0 * math.pi / 180.0
 
 @dataclass
 class PhysicalParams:

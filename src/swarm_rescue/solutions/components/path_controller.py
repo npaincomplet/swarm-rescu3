@@ -65,6 +65,38 @@ class PathController:
                 return None
         
         return self.go_to_waypoint(current_position, current_orientation, odometer_values, lidar_values, ray_angles, found_and_near_wounded)
+
+    def is_path_blocked(self, current_position, current_orientation, lidar_values, ray_angles):
+        """
+        Determine whether the path to the current waypoint is blocked by an obstacle using a cone of lidar_values in the direction of the current waypoint.
+        """
+        if self.finished_path or not self.path:
+            return False
+
+        current_waypoint = self.path[self.index_current_waypoint]
+        direction_vector = current_waypoint - current_position
+        dist_to_waypoint = np.linalg.norm(direction_vector)
+
+        path_direction = np.arctan2(direction_vector[1], direction_vector[0])
+        
+        relative_angle = path_direction - current_orientation
+        relative_angle = (relative_angle + np.pi) % (2 * np.pi) - np.pi     # Wrap the angle to [-pi, pi]
+        
+        angle_diffs = ray_angles - relative_angle
+        angle_diffs = (angle_diffs + np.pi) % (2 * np.pi) - np.pi
+        
+        cone_mask = np.abs(angle_diffs) < self.path_params.OBSTACLE_CONE_ANGLE
+        
+        if not np.any(cone_mask):
+            return False
+
+        distances = lidar_values[cone_mask]
+        min_dist = np.min(distances)
+        
+        if min_dist < dist_to_waypoint and min_dist < self.path_params.THRESHOLD_BLOCKED_PATH:
+            return True
+        
+        return False
     
     def go_to_waypoint(self, current_position, current_orientation, odometer_values, lidar_values, ray_angles, found_and_near_wounded=False):
         command = {

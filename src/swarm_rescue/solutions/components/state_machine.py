@@ -55,7 +55,8 @@ class DroneStateMachine:
             },
             DroneState.SEARCHING_RESCUE_CENTER: {
                 "lost_rescue_center": DroneState.WAITING,
-                "found_rescue_center": DroneState.GOING_RESCUE_CENTER
+                "found_rescue_center": DroneState.GOING_RESCUE_CENTER,
+                "is_path_blocked": DroneState.WAITING
             },
             DroneState.GOING_RESCUE_CENTER: {
                 "lost_rescue_center": DroneState.WAITING,
@@ -68,7 +69,8 @@ class DroneStateMachine:
             DroneState.GOING_TO_FRONTIER: {
                 "finished_path": DroneState.CHOOSING_NEW_FRONTIER,
                 "found_wounded": DroneState.GRASPING_WOUNDED,
-                "is_near_rescuing_drone": DroneState.WAITING
+                "is_near_rescuing_drone": DroneState.WAITING,
+                "is_path_blocked": DroneState.WAITING
             },
             DroneState.EVALUATE_END_OF_MISSION: {
                 "sufficient_exploration_score": DroneState.END_OF_MISSION,

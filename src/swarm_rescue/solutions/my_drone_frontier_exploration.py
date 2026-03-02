@@ -214,6 +214,10 @@ class MyDroneFrontex(DroneAbstract):
     def path(self):
         return self.path_controller.path
     
+    @property
+    def finished_path(self):
+        return self.path_controller.finished_path
+    
     # Property to access cinetic values
 
     @property
@@ -244,9 +248,9 @@ class MyDroneFrontex(DroneAbstract):
         return self.grid.frontiers()
 
     @property
-    def no_available_frontier(self):
+    def available_frontier(self) -> bool:
         """Might be stale as self.grid.frontiers is only updated in ChoosingNewFrontierState.on_enter()"""
-        return len(self.grid.frontiers) == 0
+        return len(self.grid.frontiers) != 0
     
     @property
     def next_frontier_centroid(self):
@@ -284,13 +288,13 @@ class MyDroneFrontex(DroneAbstract):
     def get_sensor_conditions(self):
         is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=30.0)
 
-        if self.no_available_frontier:
-            sufficient_exploration_score = self.compute_exploration_score() > self.end_of_mission_params.MIN_EXPLORATION_SCORE
-        else:
-            sufficient_exploration_score = False
-        
+        sufficient_exploration_score = False if self.available_frontier else self.compute_exploration_score() > self.end_of_mission_params.MIN_EXPLORATION_SCORE
+
+        is_path_blocked = False if self.finished_path else self.path_controller.is_path_blocked(self.position, self.orientation, self.lidar_values(), self.lidar_rays_angles())
+
         return {
-            "finished_path": self.path_controller.finished_path,
+            "finished_path": self.finished_path,
+            "is_path_blocked": is_path_blocked,
             "near_obstacle": self.near_obstacle,
             "lost_wall": not self.near_obstacle,
             "found_wounded": self.found_wounded,
@@ -299,8 +303,8 @@ class MyDroneFrontex(DroneAbstract):
             "found_rescue_center": self.found_rescue_center,
             "is_too_close_to_rescue_center": self.is_too_close_to_rescue_center,
             "lost_rescue_center": not self.grasper.grasped_wounded_persons,
-            "available_frontier": not self.no_available_frontier,
-            "no_available_frontier": self.no_available_frontier,
+            "available_frontier": self.available_frontier,
+            "no_available_frontier": not self.available_frontier,
             "waiting_time_over": self.step_waiting_count >= self.waiting_params.STEP_WAITING,
             "is_near_rescuing_drone": is_near_rescuing_drone,
             "just_took_damage": self.just_took_damage,
