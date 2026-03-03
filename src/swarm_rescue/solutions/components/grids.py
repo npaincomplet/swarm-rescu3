@@ -22,6 +22,9 @@ class Frontier:
         """
         self.cells = cells
         self._conv_grid_to_world = _conv_grid_to_world
+    
+    def __str__(self):
+        return f"Frontier with {self.size} cells, centroid at pos {self.compute_centroid_pos()}"
 
     @property
     def size(self):
@@ -484,6 +487,7 @@ class OccupancyGrid(Grid):
         
         # No frontiers cells found therefore no frontiers
         if len(frontier_cells) == 0:
+            self.frontiers = []
             return []
             
         # Cluster frontier cells using DBSCAN

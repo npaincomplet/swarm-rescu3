@@ -404,11 +404,9 @@ class MyDroneFrontex(DroneAbstract):
         return frontiers[col_ind[0]]
 
     def plan_path_to_frontier(self):
-        assigned_frontier = self.assign_frontier()
+        self.next_frontier = self.assign_frontier()
 
-        if assigned_frontier is not None:
-            self.next_frontier = assigned_frontier
-
+        if self.next_frontier is not None:
             start_pos = self.position
             target_pos = self.next_frontier_centroid
 
