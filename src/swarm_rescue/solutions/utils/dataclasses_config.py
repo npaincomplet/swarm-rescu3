@@ -15,6 +15,10 @@ class WaitingStateParams:
     STEP_WAITING: int = 20
 
 @dataclass
+class ObstacleAvoidanceParams:
+    OBSTACLE_ALERT_THRESHOLD: float = 10.0
+
+@dataclass
 class GraspingParams:
     GRASPING_SPEED: float = 0.3
     GRASPING_DISTANCE: float = 30.0
@@ -39,7 +43,9 @@ class EndOfMissionParams:
 @dataclass
 class SensorParams:
     TOO_CLOSE_TO_RESCUE_CENTER_THRESHOLD: float = 10.0
-    NEAR_OBSTACLE_THRESHOLD: float = WallFollowingParams.DMAX # Beware of the circular dependency with WallFollowingParams
+    NEAR_WALL_THRESHOLD: float = WallFollowingParams.DMAX # Beware of the circular dependency with WallFollowingParams
+
+    NEAR_OBSTACLE_THRESHOLD: float = ObstacleAvoidanceParams.OBSTACLE_ALERT_THRESHOLD
 
 @dataclass
 class PIDParams:

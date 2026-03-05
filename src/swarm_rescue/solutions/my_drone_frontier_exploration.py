@@ -152,6 +152,10 @@ class MyDroneFrontex(DroneAbstract):
     @property
     def near_obstacle(self):
         return self.sensor_manager.near_obstacle
+
+    @property
+    def near_wall(self):
+        return self.sensor_manager.near_wall
         
     @property
     def min_dist_wall(self):
@@ -296,7 +300,9 @@ class MyDroneFrontex(DroneAbstract):
             "finished_path": self.finished_path,
             "is_path_blocked": is_path_blocked,
             "near_obstacle": self.near_obstacle,
-            "lost_wall": not self.near_obstacle,
+            "far_from_obstacle": not self.near_obstacle,
+            "near_wall": self.near_wall,
+            "lost_wall": not self.near_wall,
             "found_wounded": self.found_wounded,
             "holding_wounded": self.holding_wounded,
             "lost_wounded": not self.found_wounded and not self.holding_wounded,

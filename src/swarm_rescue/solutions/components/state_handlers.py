@@ -29,6 +29,25 @@ class WaitingState(DroneState):
         self.drone.step_waiting_count += 1
         return self.drone.null_command
 
+class AvoidingObstacleState(DroneState):
+    def handle(self):
+        lidar_values = self.drone.lidar_values()
+        ray_angles = self.drone.lidar_rays_angles()
+        
+        min_idx = np.argmin(lidar_values)
+        angle_min = ray_angles[min_idx]
+
+        # Move in the opposite direction of the closest obstacle
+        repulsion_speed = 0.5
+        
+        command = {
+            "forward": -np.cos(angle_min) * repulsion_speed,
+            "lateral": -np.sin(angle_min) * repulsion_speed,
+            "rotation": 0.0, 
+            "grasper": 0
+        }
+        return command
+
 
 class SearchingWallState(DroneState):
     def handle(self):
@@ -112,6 +131,7 @@ class GoingRescueCenterState(DroneState):
 
         return command
 
+
 class ChoosingNewFrontierState(DroneState):
     def on_enter(self):
         self.drone.grid.update_frontiers()
@@ -119,23 +139,24 @@ class ChoosingNewFrontierState(DroneState):
     def handle(self):
         self.drone.plan_path_to_frontier()
         return self.drone.null_command
-    
+
+
 class GoingToFrontierState(DroneState):
     def handle(self):
         return self.drone.follow_path()
+
 
 class EvaluateEndOfMissionState(DroneState):
     def handle(self):
         print(self.drone.compute_exploration_score())
         return self.drone.null_command
-    
+
+
 class EndOfMissionState(DroneState):
     def on_enter(self):
         self.drone.plan_path_to_return_area()
 
     def handle(self):
-        drone_distance_to_initial_pos = np.linalg.norm(self.drone.position - self.drone.initial_position)
-
         if self.drone.path_controller.finished_path and not self.drone.is_inside_return_area:
             self.drone.plan_path_to_return_area()
 

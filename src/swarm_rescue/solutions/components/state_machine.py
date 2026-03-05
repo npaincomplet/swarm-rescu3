@@ -7,7 +7,9 @@ class DroneState(Enum):
         """
         WAITING = auto()    # Assigns 1
 
-        SEARCHING_WALL = auto()     # Assigns 2 etc ... This allows to easily add new states
+        AVOIDING_OBSTACLE = auto()  # Assigns 2 etc ... This allows to easily add new states
+
+        SEARCHING_WALL = auto()
         FOLLOWING_WALL = auto()
 
         CHOOSING_NEW_FRONTIER = auto()
@@ -32,6 +34,7 @@ class DroneStateMachine:
         # Initialize all state handlers
         self.states = {
             DroneState.WAITING: WaitingState(drone),
+            DroneState.AVOIDING_OBSTACLE: AvoidingObstacleState(drone),
             DroneState.SEARCHING_WALL: SearchingWallState(drone),
             DroneState.FOLLOWING_WALL: FollowingWallState(drone),
             DroneState.GRASPING_WOUNDED: GraspingWoundedState(drone),
@@ -46,44 +49,55 @@ class DroneStateMachine:
         # Define state transitions
         self.transitions = {
             DroneState.WAITING: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "found_wounded": DroneState.GRASPING_WOUNDED,
                 "waiting_time_over": DroneState.CHOOSING_NEW_FRONTIER
+            },
+            DroneState.AVOIDING_OBSTACLE: {
+                "far_from_obstacle": DroneState.WAITING
             },
             DroneState.GRASPING_WOUNDED: {
                 "lost_wounded": DroneState.WAITING,
                 "holding_wounded": DroneState.SEARCHING_RESCUE_CENTER
             },
             DroneState.SEARCHING_RESCUE_CENTER: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "lost_rescue_center": DroneState.WAITING,
                 "found_rescue_center": DroneState.GOING_RESCUE_CENTER,
                 "is_path_blocked": DroneState.WAITING
             },
             DroneState.GOING_RESCUE_CENTER: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "lost_rescue_center": DroneState.WAITING,
                 "is_too_close_to_rescue_center": DroneState.WAITING
             },
             DroneState.CHOOSING_NEW_FRONTIER: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "available_frontier": DroneState.GOING_TO_FRONTIER,
                 "no_available_frontier": DroneState.EVALUATE_END_OF_MISSION
             },
             DroneState.GOING_TO_FRONTIER: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "finished_path": DroneState.CHOOSING_NEW_FRONTIER,
                 "found_wounded": DroneState.GRASPING_WOUNDED,
                 "is_near_rescuing_drone": DroneState.WAITING,
                 "is_path_blocked": DroneState.WAITING
             },
             DroneState.EVALUATE_END_OF_MISSION: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "sufficient_exploration_score": DroneState.END_OF_MISSION,
                 "insufficient_exploration_score": DroneState.FOLLOWING_WALL
             },
             DroneState.END_OF_MISSION: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
             },
             DroneState.SEARCHING_WALL: {
                 "found_wounded": DroneState.GRASPING_WOUNDED,
-                "near_obstacle": DroneState.FOLLOWING_WALL,
+                "near_wall": DroneState.FOLLOWING_WALL,
                 "is_near_rescuing_drone": DroneState.WAITING
             },
             DroneState.FOLLOWING_WALL: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "found_wounded": DroneState.GRASPING_WOUNDED,
                 "lost_wall": DroneState.SEARCHING_WALL,
                 "is_near_rescuing_drone": DroneState.WAITING

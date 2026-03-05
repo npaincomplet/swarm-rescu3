@@ -13,6 +13,7 @@ class SensorManager:
         self.wall_following_params = WallFollowingParams()
         
         # Lidar sensor values
+        self.near_wall = False
         self.near_obstacle = False
         self.epsilon_wall_angle = 0.0
         self.min_dist_wall = 1000.0
@@ -46,6 +47,8 @@ class SensorManager:
         angle_nearest_obstacle = ray_angles[np.argmin(lidar_values)]
 
         self.near_obstacle = self.min_dist_wall < self.sensor_params.NEAR_OBSTACLE_THRESHOLD
+
+        self.near_wall = self.min_dist_wall < self.sensor_params.NEAR_WALL_THRESHOLD
         self.epsilon_wall_angle = angle_nearest_obstacle - np.pi/2
     
     def process_semantic_sensor(self, semantic_values, estimated_pose, wounded_locked):
