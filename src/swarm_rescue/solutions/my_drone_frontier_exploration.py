@@ -151,7 +151,7 @@ class MyDroneFrontex(DroneAbstract):
 
     @property
     def near_obstacle(self):
-        return self.sensor_manager.near_obstacle
+        return self.sensor_manager.near_obstacle or self.just_took_damage
 
     @property
     def near_wall(self):

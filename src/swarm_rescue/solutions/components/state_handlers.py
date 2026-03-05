@@ -37,8 +37,7 @@ class AvoidingObstacleState(DroneState):
         min_idx = np.argmin(lidar_values)
         angle_min = ray_angles[min_idx]
 
-        # Move in the opposite direction of the closest obstacle
-        repulsion_speed = 0.5
+        repulsion_speed = 1.0
         
         command = {
             "forward": -np.cos(angle_min) * repulsion_speed,

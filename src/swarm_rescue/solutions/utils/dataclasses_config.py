@@ -16,7 +16,7 @@ class WaitingStateParams:
 
 @dataclass
 class ObstacleAvoidanceParams:
-    OBSTACLE_ALERT_THRESHOLD: float = 10.0
+    OBSTACLE_ALERT_THRESHOLD: float = 7.5
 
 @dataclass
 class GraspingParams:
