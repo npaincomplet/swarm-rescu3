@@ -69,14 +69,12 @@ class FollowingWallState(DroneState):
             "grasper": 0
         }
 
-        command = self.drone.rotation_pid.update_command(
-            command, 
+        command["rotation"] = self.drone.rotation_pid.get_command(
             self.drone.epsilon_wall_angle, 
             self.drone.odometer_values()
         )
     
-        command = self.drone.lateral_pid.update_command(
-            command, 
+        command["lateral"] = self.drone.lateral_pid.get_command(
             epsilon_wall_distance, 
             self.drone.odometer_values()
         )
@@ -94,12 +92,13 @@ class GraspingWoundedState(DroneState):
             "rotation": 0.0,
             "grasper": ready_to_grasp
         }
-        
-        return self.drone.rotation_pid.update_command(
-            command, 
+
+        command["rotation"] = self.drone.rotation_pid.get_command(
             self.drone.epsilon_wounded, 
             self.drone.odometer_values()
         )
+
+        return command
 
 
 class SearchingRescueCenterState(DroneState):
@@ -122,8 +121,7 @@ class GoingRescueCenterState(DroneState):
             "grasper": 1
         }
         
-        command = self.drone.rotation_pid.update_command(
-            command, 
+        command["rotation"] = self.drone.rotation_pid.get_command(
             self.drone.epsilon_rescue_center, 
             self.drone.odometer_values()
         )

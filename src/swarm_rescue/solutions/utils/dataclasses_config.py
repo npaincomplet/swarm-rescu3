@@ -46,6 +46,7 @@ class SensorParams:
     NEAR_WALL_THRESHOLD: float = WallFollowingParams.DMAX # Beware of the circular dependency with WallFollowingParams
 
     NEAR_OBSTACLE_THRESHOLD: float = ObstacleAvoidanceParams.OBSTACLE_ALERT_THRESHOLD
+    NEAR_OTHER_DRONE_THRESHOLD: float = 200.0
 
 @dataclass
 class PIDParams:
@@ -71,6 +72,8 @@ class PathControlParams:
 
     THRESHOLD_BLOCKED_PATH: float = 20.0
     OBSTACLE_CONE_ANGLE: float = 20.0 * math.pi / 180.0
+
+    NEAR_OTHER_DRONE_FORWARD_SPEED: float = 5.0
 
 @dataclass
 class PhysicalParams:

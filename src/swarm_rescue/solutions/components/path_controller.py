@@ -64,7 +64,7 @@ class PathController:
         return (distance_to_waypoint < self.path_params.DISTANCE_CLOSE_WAYPOINT and
                 speed < self.path_params.SPEED_CLOSE_WAYPOINT)
     
-    def follow_path(self, current_position, current_orientation, odometer_values, lidar_values, ray_angles, found_and_near_wounded=False):
+    def follow_path(self, current_position, current_orientation, odometer_values, lidar_values, ray_angles, near_other_drone, found_and_near_wounded=False):
         if self.finished_path or not self.path:
             return None
             
@@ -78,7 +78,7 @@ class PathController:
                 self.path_grid = []
                 return None
         
-        return self.go_to_waypoint(current_position, current_orientation, odometer_values, lidar_values, ray_angles, found_and_near_wounded)
+        return self.go_to_waypoint(current_position, current_orientation, odometer_values, lidar_values, ray_angles, near_other_drone, found_and_near_wounded)
 
     def is_path_blocked(self, current_position, current_orientation, lidar_values, ray_angles):
         """
@@ -112,14 +112,7 @@ class PathController:
         
         return False
     
-    def go_to_waypoint(self, current_position, current_orientation, odometer_values, lidar_values, ray_angles, found_and_near_wounded=False):
-        command = {
-            "forward": 0.0,
-            "lateral": 0.0,
-            "rotation": 0.0,
-            "grasper": 1 if found_and_near_wounded else 0
-        }
-
+    def go_to_waypoint(self, current_position, current_orientation, odometer_values, lidar_values, ray_angles, near_other_drone, found_and_near_wounded=False):
         if self.index_current_waypoint == 0:
             previous_waypoint = self.initial_point_path
         else:
@@ -136,17 +129,19 @@ class PathController:
         drone_vector = current_position - previous_waypoint # From previous waypoint to drone position
         
         # ANGLE CONTROL
+        command_rotation = 0.0
+
         path_direction = np.arctan2(direction_vector[1], direction_vector[0])
-        
         angle_error = path_direction - current_orientation
         
-        command = self.rotation_pid.update_command(
-            command, 
+        command_rotation = self.rotation_pid.get_command(
             angle_error, 
             odometer_values
         )
 
         # LATERAL CONTROL
+        command_lateral = 0.0
+
         if np.linalg.norm(direction_vector) == 0:
             perpendicular_distance = 0.0
         else:
@@ -155,13 +150,14 @@ class PathController:
         perpendicular_error = perpendicular_distance + self.obstacle_avoidance_lateral_offset(lidar_values)
 
         if abs(angle_error) <= self.path_params.MAX_ANGLE_ERROR: # Allow lateral control only if the angle error is within a certain threshold
-            command = self.lateral_pid.update_command(
-                command,
+            command_lateral = self.lateral_pid.get_command(
                 perpendicular_error, 
                 odometer_values
             )
         
         # FORWARD CONTROL
+        command_forward = 0.0
+
         if np.linalg.norm(direction_vector) == 0:
             parallel_distance = 0.0
         else:
@@ -170,12 +166,25 @@ class PathController:
         parallel_error = parallel_distance + self.obstacle_avoidance_longitudinal_offset(lidar_values)
 
         if abs(angle_error) <= self.path_params.MAX_ANGLE_ERROR: # Allow forward control only if the angle error is within a certain threshold
-            command = self.forward_pid.update_command(
-                command,
+            command_forward = self.forward_pid.get_command(
                 parallel_error,
                 odometer_values
             )
         
+        if command_forward > 0 and near_other_drone:
+            max_speed = self.path_params.NEAR_OTHER_DRONE_FORWARD_SPEED
+            current_speed = odometer_values[0]
+            speed_constraint = max_speed - current_speed
+
+            command_forward = speed_constraint
+        
+        command = {
+            "forward": command_forward,
+            "lateral": command_lateral,
+            "rotation": command_rotation,
+            "grasper": 1 if found_and_near_wounded else 0
+        }
+
         return command
     
     def obstacle_avoidance_lateral_offset(self, lidar_values):

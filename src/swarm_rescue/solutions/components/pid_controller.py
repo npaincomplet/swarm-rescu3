@@ -52,12 +52,7 @@ class PIDController:
         
         return np.clip(correction, -1.0, 1.0)
 
-    def update_command(self, 
-                     command: Dict[str, Any], 
+    def get_command(self,
                      error: float, 
                      odometer_values: Optional[List[float]] = None) -> Dict[str, Any]:
-        control = self.compute(error, odometer_values)
-        
-        command[self.mode] = control
-            
-        return command
+        return self.compute(error, odometer_values)

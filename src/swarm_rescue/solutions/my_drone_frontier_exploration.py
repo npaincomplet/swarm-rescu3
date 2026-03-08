@@ -154,6 +154,10 @@ class MyDroneFrontex(DroneAbstract):
         return self.sensor_manager.near_obstacle or self.just_took_damage
 
     @property
+    def near_other_drone(self):
+        return self.sensor_manager.near_other_drone
+
+    @property
     def near_wall(self):
         return self.sensor_manager.near_wall
         
@@ -329,6 +333,16 @@ class MyDroneFrontex(DroneAbstract):
     def communication_management(self):
         self.communication_manager.process_incoming_messages()
 
+    def sanitize_command(self, command):
+        sanitized_command = {
+            "forward": np.clip(command["forward"], -1.0, 1.0),
+            "lateral": np.clip(command["lateral"], -1.0, 1.0),
+            "rotation": np.clip(command["rotation"], -1.0, 1.0),
+            "grasper": command["grasper"] if command["grasper"] is not None else 0
+        }
+
+        return sanitized_command
+
     def control(self):
         if self.is_killed():
             # Drone in KillZone. Or at least no lidar available
@@ -358,6 +372,7 @@ class MyDroneFrontex(DroneAbstract):
         # Execute current state behavior
 
         command = self.state_machine.handle_current_state() or self.null_command
+        command = self.sanitize_command(command)
 
         self.memory.update(self.position, self.orientation, self.drone_health, command)
 
@@ -464,6 +479,7 @@ class MyDroneFrontex(DroneAbstract):
             self.odometer_values(),
             self.lidar_values(),
             self.lidar_rays_angles(),
+            self.near_other_drone,
             found_and_near_wounded=found_and_near_wounded
         )
     

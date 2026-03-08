@@ -19,6 +19,7 @@ class SensorManager:
         self.min_dist_wall = 1000.0
         
         # Semantic sensor values
+        self.near_other_drone = False
         self.found_wounded = False
         self.found_rescue_center = False
         self.epsilon_wounded = 1000.0
@@ -27,6 +28,7 @@ class SensorManager:
         self.min_dist_wounded = 1000.0
         
     def reset_semantic_sensor_values(self):
+        self.near_other_drone = False
         self.found_wounded = False
         self.found_rescue_center = False
         self.epsilon_wounded = 0.0
@@ -82,6 +84,10 @@ class SensorManager:
                 v = (data.angle * data.angle) + \
                     (data.distance * data.distance / 10 ** 5)
                 scores.append((v, data.angle, data.distance))
+            
+            elif (data.entity_type == DroneSemanticSensor.TypeEntity.DRONE):
+                if data.distance < self.sensor_params.NEAR_OTHER_DRONE_THRESHOLD:
+                    self.near_other_drone = True
 
         if angles_list:
             self.epsilon_rescue_center = circular_mean(np.array(angles_list))
