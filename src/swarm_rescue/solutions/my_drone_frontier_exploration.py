@@ -367,7 +367,7 @@ class MyDroneFrontex(DroneAbstract):
 
         self.misc_management()
 
-        self.draw_top_layer()
+        # self.draw_top_layer()
 
         # Execute current state behavior
 
