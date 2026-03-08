@@ -249,7 +249,7 @@ class MyDroneFrontex(DroneAbstract):
 
     @property
     def frontiers(self):
-        return self.grid.frontiers()
+        return list(self.grid.frontiers)
 
     @property
     def available_frontier(self) -> bool:
@@ -377,7 +377,7 @@ class MyDroneFrontex(DroneAbstract):
         Frontier assignment does not assume perfect information sharing between drones.
         Locally, each drone d1 is assigned to a frontier that would be optimal (in terms of task sharing) if each drone had the same information as d1.
         """
-        frontiers = self.grid.frontiers
+        frontiers = self.frontiers
         if not frontiers:
             return None
 
@@ -387,6 +387,21 @@ class MyDroneFrontex(DroneAbstract):
             drone_positions.append(pos)
 
         num_drones = len(drone_positions)
+        
+        # Geometric splitting of frontiers to ensure enough targets for all drones
+        while len(frontiers) < num_drones:
+            largest_frontier_idx = np.argmax([f.size for f in frontiers])
+            largest_frontier = frontiers[largest_frontier_idx]
+
+            new_frontiers = largest_frontier.split()
+            
+            # Splitting did not create any new frontier
+            if len(new_frontiers) == 1:
+                break
+            
+            frontiers.pop(largest_frontier_idx)
+            frontiers.extend(new_frontiers)
+
         num_frontiers = len(frontiers)
 
         cost_matrix = np.zeros((num_drones, num_frontiers))

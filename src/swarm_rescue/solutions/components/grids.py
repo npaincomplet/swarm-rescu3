@@ -6,7 +6,7 @@ from solutions.components.astar import *
 from solutions.utils.dataclasses_config import *
 from solutions.utils.utils import bresenham
 
-from sklearn.cluster import DBSCAN
+from sklearn.cluster import DBSCAN, KMeans
 
 class Frontier:
     """
@@ -48,13 +48,12 @@ class Frontier:
         
         return self._conv_grid_to_world(centroid)
     
-    def split_if_large_arc(self) -> list["Frontier"]:
+    def is_large_arc(self) -> bool:
         """
-        If the frontier forms an arc > 180 degrees around its centroid, 
-        shatter it (split into smaller frontiers).
+        Return True iff the frontier forms an arc > 180 degrees around its centroid.
         """
         if self.size < 2 * self.MIN_FRONTIER_SIZE:
-             return [self]
+            return False
         
         centroid = self.compute_centroid_cell()
 
@@ -64,7 +63,6 @@ class Frontier:
         
         sorted_indices = np.argsort(angles)
         sorted_angles = angles[sorted_indices]
-        sorted_cells = self.cells[sorted_indices]
 
         # Calculate difference between adjacent angles (including the wrap-around)
         diffs = np.diff(sorted_angles)
@@ -73,25 +71,33 @@ class Frontier:
         max_gap = np.max(all_diffs)
 
         # A small angular max_gap hints at a circular frontier
-        if max_gap < GridParams.FRONTIER_SPLIT_THRESHOLD:
-            max_gap_index = np.argmax(all_diffs)
+        return max_gap < GridParams.FRONTIER_SPLIT_THRESHOLD
+    
+    def split(self) -> list["Frontier"]:
+        """
+        Force split the frontier into two smaller frontiers.
+        Uses K-Means clustering to ensure spatial continuity.
+        """
+        if self.size < 2:
+            return [self]
 
-            # Determine the split point based on the largest gap
-            if max_gap_index < len(diffs):
-                # Gap is between sorted_angles[max_gap_index] and sorted_angles[max_gap_index + 1]
-                split_point = max_gap_index + 1
-            else:
-                # Gap is the wrap-around
-                split_point = 0  # Split at the beginning (after the wrap)
+        kmeans = KMeans(n_clusters=2, n_init=10).fit(self.cells)
+        labels = kmeans.labels_
 
-            half_size = self.size // 2
-            f1_cells = sorted_cells[split_point:split_point + half_size]
-            f2_cells = np.concatenate((sorted_cells[:split_point], sorted_cells[split_point + half_size:]), axis=0)
+        f1_cells = self.cells[labels == 0]
+        f2_cells = self.cells[labels == 1]
 
-            f1 = Frontier(f1_cells, self._conv_grid_to_world)
-            f2 = Frontier(f2_cells, self._conv_grid_to_world)
-            return [f1, f2]
-            
+        if len(f1_cells) < self.MIN_FRONTIER_SIZE or len(f2_cells) < self.MIN_FRONTIER_SIZE:
+            return [self]
+
+        f1 = Frontier(f1_cells, self._conv_grid_to_world)
+        f2 = Frontier(f2_cells, self._conv_grid_to_world)
+        return [f1, f2]
+    
+    def split_if_large_arc(self) -> list["Frontier"]:
+        if self.is_large_arc():
+            return self.split()
+        
         return [self]
 
 class Grid:
