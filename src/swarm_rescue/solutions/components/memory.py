@@ -1,6 +1,6 @@
 from collections import deque
 import numpy as np
-from solutions.utils.dataclasses_config import MemoryParams
+from swarm_rescue.solutions.utils.dataclasses_config import MemoryParams
 
 class History:
     def __init__(self, memory_size: int):

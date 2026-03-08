@@ -1,10 +1,10 @@
 import numpy as np
 import cv2
 from swarm_rescue.simulation.utils.constants import MAX_RANGE_LIDAR_SENSOR
-from solutions.components.pose import PoseEstimator
-from solutions.components.astar import *
-from solutions.utils.dataclasses_config import *
-from solutions.utils.utils import bresenham
+from swarm_rescue.solutions.components.pose import PoseEstimator
+from swarm_rescue.solutions.components.astar import *
+from swarm_rescue.solutions.utils.dataclasses_config import *
+from swarm_rescue.solutions.utils.utils import bresenham
 
 from sklearn.cluster import DBSCAN, KMeans
 

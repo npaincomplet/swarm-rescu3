@@ -2,7 +2,7 @@ import abc
 from typing import Tuple, Optional, Dict
 import numpy as np
 from swarm_rescue.simulation.utils.utils import normalize_angle
-from solutions.utils.dataclasses_config import LocalizationParams
+from swarm_rescue.solutions.utils.dataclasses_config import LocalizationParams
 from simulation.utils.definitions import SPACE_DAMPING, PYMUNK_STEPS, ANGULAR_VELOCITY, LINEAR_FORCE
 from simulation.utils.constants import ANGULAR_SPEED_RATIO, LINEAR_SPEED_RATIO
 

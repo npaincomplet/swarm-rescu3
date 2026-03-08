@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from solutions.components.pose import PoseEstimatorManager
+from swarm_rescue.solutions.components.pose import PoseEstimatorManager
 
 class PositionTracker:
     def __init__(self, pose_estimator_manager: PoseEstimatorManager):

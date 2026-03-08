@@ -1,10 +1,10 @@
 import numpy as np
 import cv2
-from solutions.components.astar import a_star
-from solutions.utils.utils import bresenham
+from swarm_rescue.solutions.components.astar import a_star
+from swarm_rescue.solutions.utils.utils import bresenham
 from typing import Optional, List
-from solutions.components.grids import *
-from solutions.utils.dataclasses_config import PathPlanningParams
+from swarm_rescue.solutions.components.grids import *
+from swarm_rescue.solutions.utils.dataclasses_config import PathPlanningParams
 
 class CostmapGrid():
     """

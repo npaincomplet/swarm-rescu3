@@ -1,9 +1,9 @@
 import arcade
 import hashlib
-from solutions.components.pose import PoseEstimator, PoseEstimatorManager
-from solutions.utils.dataclasses_config import VisualizationParams
-from solutions.components.state_machine import DroneState
-from solutions.components.grids import Frontier
+from swarm_rescue.solutions.components.pose import PoseEstimator, PoseEstimatorManager
+from swarm_rescue.solutions.utils.dataclasses_config import VisualizationParams
+from swarm_rescue.solutions.components.state_machine import DroneState
+from swarm_rescue.solutions.components.grids import Frontier
 
 class VisualizationDrawer:
     def __init__(self, half_size_array, conv_grid_to_world):

@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List
-from solutions.utils.dataclasses_config import TrackingParams
+from swarm_rescue.solutions.utils.dataclasses_config import TrackingParams
 
 class TrackedWounded:
     """Stores encountered wounded person informations. Positions are in WORLD COORDINATES"""

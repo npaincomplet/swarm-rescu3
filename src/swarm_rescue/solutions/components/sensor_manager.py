@@ -2,7 +2,7 @@ import numpy as np
 import math
 from swarm_rescue.simulation.ray_sensors.drone_semantic_sensor import DroneSemanticSensor
 from swarm_rescue.simulation.utils.utils import circular_mean
-from solutions.utils.dataclasses_config import SensorParams, GraspingParams, WallFollowingParams
+from swarm_rescue.solutions.utils.dataclasses_config import SensorParams, GraspingParams, WallFollowingParams
 
 class SensorManager:
     """Manages sensor data processing without direct drone dependency"""

@@ -4,20 +4,20 @@ import numpy as np
 from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.utils.misc_data import MiscData
 
-from solutions.components.pose import *
-from solutions.components.astar import *
-from solutions.components.communication import *
-from solutions.components.grids import *
-from solutions.components.path_planner import *
-from solutions.utils.dataclasses_config import *
-from solutions.components.pid_controller import *
-from solutions.components.state_handlers import *
-from solutions.components.state_machine import *
-from solutions.components.path_controller import *
-from solutions.components.sensor_manager import SensorManager
-from solutions.components.memory import DroneMemory
-from solutions.components.visualization_drawer import VisualizationDrawer
-from solutions.utils.data_serializer import PositionTracker
+from swarm_rescue.solutions.components.pose import *
+from swarm_rescue.solutions.components.astar import *
+from swarm_rescue.solutions.components.communication import *
+from swarm_rescue.solutions.components.grids import *
+from swarm_rescue.solutions.components.path_planner import *
+from swarm_rescue.solutions.utils.dataclasses_config import *
+from swarm_rescue.solutions.components.pid_controller import *
+from swarm_rescue.solutions.components.state_handlers import *
+from swarm_rescue.solutions.components.state_machine import *
+from swarm_rescue.solutions.components.path_controller import *
+from swarm_rescue.solutions.components.sensor_manager import SensorManager
+from swarm_rescue.solutions.components.memory import DroneMemory
+from swarm_rescue.solutions.components.visualization_drawer import VisualizationDrawer
+from swarm_rescue.solutions.utils.data_serializer import PositionTracker
 
 from scipy.optimize import linear_sum_assignment
 
@@ -507,13 +507,6 @@ class MyDroneFrontex(DroneAbstract):
         if display_zoomed_grid and (self.timestep_count % 5 == 0):
             title=f"Drone {self.identifier} zoomed occupancy grid"
             self.grid.display(title)
-
-    def logging_management(self):
-        # true_position used only for logging purpose
-        self.position_tracker.update(self.true_position())
-        
-        if self.timestep_count == 500:
-            self.position_tracker.export_performance_metrics()
 
     # Use this function only at one place in the control method. Not handled othewise.
     # params : variables_to_log : dict of variables to log with keys as variable names and values as variable values.

@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from solutions.components.state_handlers import *
+from swarm_rescue.solutions.components.state_handlers import *
 
 class DroneState(Enum):
         """

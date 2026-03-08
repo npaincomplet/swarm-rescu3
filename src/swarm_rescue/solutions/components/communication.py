@@ -1,5 +1,5 @@
-from solutions.components.state_machine import DroneState
-from solutions.utils.dataclasses_config import CommunicationParams
+from swarm_rescue.solutions.components.state_machine import DroneState
+from swarm_rescue.solutions.utils.dataclasses_config import CommunicationParams
 
 class DroneMessage:
     class Subject:
