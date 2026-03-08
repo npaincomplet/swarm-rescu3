@@ -1,4 +1,5 @@
 from solutions.components.state_machine import DroneState
+from solutions.utils.dataclasses_config import CommunicationParams
 
 class DroneMessage:
     class Subject:
@@ -26,13 +27,24 @@ class CommunicationManager:
         self.drone = drone
         self.wounded_locked = []
         self.other_drones_pos = []
-        self.communication_params = drone.communication_params
+        self.communication_params = CommunicationParams()
 
-        # Format: {drone_id: DroneInfo}
-        self.latest_swarm_infos = {}
+        # All latest (drone_id, DroneInfo) pairs: current timestep own info + received from other drones at any timestep.
+        self.latest_swarm_infos: dict[int, DroneInfo] = {}
+        # All latest (drone_id, timestep) pairs: last communication timestep between this drone and drone with id drone_id.
+        self.latest_communication_timestep: dict[int, int] = {}
+
+    @property
+    def timestep_count(self):
+        return self.drone.timestep_count
+
+    @property
+    def total_number_of_drones(self):
+        """Might be inaccurate at the very beginning of the simulation"""
+        return len(self.latest_swarm_infos)
 
     def prepare_outgoing_messages(self):
-        if self.drone.timestep_count <= 1 or self.drone.is_killed():
+        if self.timestep_count <= 1 or self.drone.is_killed():
             return None
 
         messages = []
@@ -44,21 +56,21 @@ class CommunicationManager:
             arg=self.latest_swarm_infos
         ))
 
-        # Periodic map sharing
-        if self.drone.timestep_count % self.communication_params.TIME_INTERVAL == 0:
-            messages.append(DroneMessage(
-                subject=DroneMessage.Subject.MAPPING,
-                arg={"map": self.drone.grid.grid}
-            ))
+        # Map broadcasting is uncostly because the simulator doesn't emulate real communication channels
+        messages.append(DroneMessage(
+            subject=DroneMessage.Subject.MAPPING,
+            arg={"map": self.drone.grid.grid}
+        ))
 
         return messages
     
     def _update_own_swarm_info(self):
+        """Update own drone info in own latest_swarm_infos"""
         self.latest_swarm_infos[self.drone.identifier] = DroneInfo(
             drone_id=self.drone.identifier,
             position=self.drone.position,
             state=self.drone.current_state,
-            timestep=self.drone.timestep_count
+            timestep=self.timestep_count
         )
 
     def process_incoming_messages(self):
@@ -67,18 +79,24 @@ class CommunicationManager:
             
         received_messages = self.drone.communicator.received_messages
         for msg in received_messages:
+            sender_id = msg[0]
+            self.latest_communication_timestep[sender_id.identifier] = self.timestep_count
+
             for drone_msg in msg[1]:
                 if not isinstance(drone_msg, DroneMessage):
                     raise ValueError("Invalid message type. Expected a DroneMessage instance.")
                 
-                self._handle_message(drone_msg)
+                self._handle_message(sender_id, drone_msg)
 
         self._update_other_drones_pos()
         self._update_wounded_locked()
 
+    def _latest_communication_timestep(self, drone_id):
+        return self.latest_communication_timestep.get(drone_id, float("-inf"))
+
     def _info_is_recent(self, drone_info):
         """Check if the drone info is recent enough to be considered valid"""
-        return (drone_info.timestep >= self.drone.timestep_count - self.communication_params.MAX_INFO_DELAY)
+        return (drone_info.timestep >= self.timestep_count - self.communication_params.MAX_INFO_DELAY)
 
     def _update_other_drones_pos(self):
         self.other_drones_pos = []
@@ -100,9 +118,11 @@ class CommunicationManager:
                 self._info_is_recent(drone_info)):
                 self.wounded_locked.append((drone_id, drone_info.position))
 
-    def _handle_message(self, drone_msg):
+    def _handle_message(self, sender_id, drone_msg):
         if drone_msg.subject == DroneMessage.Subject.MAPPING:
-            self.drone.grid.merge_grids(drone_msg.arg["map"])
+            time_since_last_communication_with_this_drone = self.timestep_count - self._latest_communication_timestep(sender_id)
+            if time_since_last_communication_with_this_drone > self.communication_params.TIME_INTERVAL:
+                self.drone.grid.merge_grids(drone_msg.arg["map"])
 
         elif drone_msg.subject == DroneMessage.Subject.SWARM_INFO:
             self._merge_swarm_info(drone_msg.arg)
