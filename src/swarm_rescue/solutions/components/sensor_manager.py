@@ -103,7 +103,6 @@ class SensorManager:
                 
                 if np.linalg.norm(detection_position - np.array(wnd_locked[1])) < self.grasping_params.WOUNDED_CONFLICT_THRESHOLD:
                     conflict = True
-                    print("Conflict of wounded")
                     break
                     
             if not conflict:

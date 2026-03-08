@@ -145,7 +145,6 @@ class GoingToFrontierState(DroneState):
 
 class EvaluateEndOfMissionState(DroneState):
     def handle(self):
-        print(self.drone.compute_exploration_score())
         return self.drone.null_command
 
 

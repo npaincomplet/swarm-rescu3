@@ -510,7 +510,6 @@ class OccupancyGrid(Grid):
         """
         Set to FRONTIER_ARTIFACT_VALUE (which relates to OBSTACLE) in the grid all cells of frontier
         """
-        print("Deleting frontier artifacts of size", frontier.size)
         reset_val = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
         reset_complex = reset_val + reset_val * 1j
 
@@ -571,7 +570,6 @@ class OccupancyGrid(Grid):
             region_size = stats[label, cv2.CC_STAT_AREA]
             
             if not is_reachable and region_size > self.grid_params.MIN_UNREACHABLE_REGION_SIZE:
-                print("Deleting unreachable undiscovered region of size", region_size)
                 component_coords = np.argwhere(component_mask)
                 obs_val = self.grid_params.UNREACHABLE_REGION_VALUE
                 self.grid[component_coords[:, 0], component_coords[:, 1]] = obs_val + obs_val * 1j

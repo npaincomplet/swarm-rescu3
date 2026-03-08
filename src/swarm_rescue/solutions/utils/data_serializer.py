@@ -37,8 +37,6 @@ class PositionTracker:
         df = pd.DataFrame(list(self.performance_metrics.items()), columns=["Method", "MSE"])
         df.to_csv(filepath, index=False)
 
-        print(f"Performance metrics exported to {filepath}")
-
     def plot_errors(self) -> None:
         plt.figure(figsize=(10, 6))
         

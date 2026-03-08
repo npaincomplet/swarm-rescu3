@@ -132,7 +132,6 @@ class CommunicationManager:
             if time_since_last_merge_communication_with_drone > self.communication_params.TIME_INTERVAL:
                 self.drone.grid.merge_grids(drone_msg.arg["map"])
                 self.latest_merge_communication_timestep[sender_id] = self.timestep_count
-                print(f"Drone {self.identifier} merged map from drone {sender_id} after {time_since_last_merge_communication_with_drone} timesteps without communication with this drone.")
 
         elif drone_msg.subject == DroneMessage.Subject.SWARM_INFO:
             self._merge_swarm_info(drone_msg.arg)
