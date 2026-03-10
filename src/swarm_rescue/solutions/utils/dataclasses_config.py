@@ -47,7 +47,7 @@ class WallFollowingParams:
 @dataclass
 class EndOfMissionParams:
     MIN_EXPLORATION_SCORE: float = 0.9
-    NUMBER_DRONES_REVISIT_WOUNDED: int = 1
+    NUMBER_DRONES_REVISIT_WOUNDED: int = 2
     MIN_DIST_WOUNDED_INITIAL_POS: float = 200.0
     WOUNDED_CELL_RADIUS: int = math.ceil(PhysicalParams.DRONE_RADIUS / MappingParams.RESOLUTION)
 
