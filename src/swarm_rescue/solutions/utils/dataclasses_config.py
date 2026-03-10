@@ -43,6 +43,7 @@ class WallFollowingParams:
 @dataclass
 class EndOfMissionParams:
     MIN_EXPLORATION_SCORE: float = 0.9
+    NUMBER_DRONES_REVISIT_WOUNDED: int = 1
 
 @dataclass
 class SensorParams:

@@ -13,7 +13,8 @@ class ExplorationTracker:
         return len(self.wounded_sighting_positions)
 
     @property
-    def revisited_all_wounded_locations(self):
+    def revisited_all_assigned_wounded_locations(self):
+        """Drone are assigned specific wounded locations to revisit"""
         return self.wounded_revisit_index >= self.number_of_sightings
 
     def _wounded_sighting_is_new(self, sighting_position):
@@ -34,7 +35,7 @@ class ExplorationTracker:
                 self.wounded_sighting_positions.append(received_position)
 
     def assign_wounded_sighting(self):
-        if self.revisited_all_wounded_locations:
+        if self.revisited_all_assigned_wounded_locations:
             return None
         
         assigned_wounded_sighting = self.wounded_sighting_positions[self.wounded_revisit_index]

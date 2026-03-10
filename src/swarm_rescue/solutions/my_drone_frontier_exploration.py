@@ -285,11 +285,18 @@ class MyDroneFrontex(DroneAbstract):
     @property
     def wounded_sighting_positions(self):
         return self.exploration_tracker.wounded_sighting_positions
+    
+    @property
+    def needs_to_revisit_wounded(self):
+        return self.identifier < self.end_of_mission_params.NUMBER_DRONES_REVISIT_WOUNDED
 
     @property
-    def revisited_all_wounded_locations(self):
+    def revisited_all_assigned_wounded_locations(self):
         """Successfully revisited all wounded locations"""
-        return self.exploration_tracker.revisited_all_wounded_locations
+        if self.needs_to_revisit_wounded:
+            return self.exploration_tracker.revisited_all_assigned_wounded_locations
+        else:
+            return True
 
     # Property misc
 
@@ -339,8 +346,8 @@ class MyDroneFrontex(DroneAbstract):
             "just_took_damage": self.just_took_damage,
             "sufficient_exploration_score": sufficient_exploration_score,
             "insufficient_exploration_score": not sufficient_exploration_score,
-            "revisited_all_wounded_locations": self.revisited_all_wounded_locations,
-            "not_revisited_all_wounded_locations": not self.revisited_all_wounded_locations
+            "revisited_all_assigned_wounded_locations": self.revisited_all_assigned_wounded_locations,
+            "not_revisited_all_assigned_wounded_locations": not self.revisited_all_assigned_wounded_locations
         }
 
     def is_killed(self):
