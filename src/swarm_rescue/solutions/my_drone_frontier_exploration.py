@@ -492,7 +492,23 @@ class MyDroneFrontex(DroneAbstract):
         self.path_controller.set_path(path, self.position)
 
     def assign_wounded_sighting(self):
-        return self.exploration_tracker.assign_wounded_sighting()
+        while not self.revisited_all_assigned_wounded_locations:
+            sighting = self.exploration_tracker.assign_wounded_sighting()
+            if sighting is None:
+                break
+
+            dist_to_initial_position = np.linalg.norm(sighting - self.initial_position)
+            is_far_enough = dist_to_initial_position > self.end_of_mission_params.MIN_DIST_WOUNDED_INITIAL_POS
+
+            is_obstacle = self.grid.pos_radius_has_obstacle(sighting, self.end_of_mission_params.WOUNDED_CELL_RADIUS)
+
+            if is_far_enough and is_obstacle:
+                return sighting
+            else:
+                # Sighting is not worth visiting, skip it and check the next one
+                self.exploration_tracker.wounded_revisit_index += 1
+        
+        return None
 
     def plan_path_to_next_sighting(self):
         self.next_wounded_sighting = self.assign_wounded_sighting()

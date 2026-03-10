@@ -610,6 +610,19 @@ class OccupancyGrid(Grid):
         val = self._get_effective_value(cell_value)
         return GridParams.FREE_THRESHOLD <= val <= GridParams.OBSTACLE_THRESHOLD
 
+    def pos_radius_has_obstacle(self, pos, cell_radius):
+        center_cell = self._conv_world_to_grid(pos)
+        x_center, y_center = center_cell
+        
+        for dx in range(-cell_radius, cell_radius + 1):
+            for dy in range(-cell_radius, cell_radius + 1):
+                cell = np.array([x_center + dx, y_center + dy])
+                if self.cell_in_bounds(cell):
+                    cell_value = self.grid[tuple(cell)]
+                    if self.is_obstacle(cell_value):
+                        return True
+        return False
+
     def free_mask(self):
         eff = self._get_effective_grid()
         return eff < GridParams.FREE_THRESHOLD

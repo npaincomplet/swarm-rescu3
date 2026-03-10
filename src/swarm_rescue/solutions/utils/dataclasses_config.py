@@ -2,6 +2,10 @@ from dataclasses import dataclass
 import math
 
 @dataclass
+class PhysicalParams:
+    DRONE_RADIUS: float = 15.0
+
+@dataclass
 class MappingParams:
     RESOLUTION: int = 8     # 8 to 1 factor from simulation pixels to grid (efficiency)
 
@@ -44,6 +48,8 @@ class WallFollowingParams:
 class EndOfMissionParams:
     MIN_EXPLORATION_SCORE: float = 0.9
     NUMBER_DRONES_REVISIT_WOUNDED: int = 1
+    MIN_DIST_WOUNDED_INITIAL_POS: float = 200.0
+    WOUNDED_CELL_RADIUS: int = math.ceil(PhysicalParams.DRONE_RADIUS / MappingParams.RESOLUTION)
 
 @dataclass
 class SensorParams:
@@ -79,10 +85,6 @@ class PathControlParams:
     OBSTACLE_CONE_ANGLE: float = 20.0 * math.pi / 180.0
 
     NEAR_OTHER_DRONE_FORWARD_SPEED: float = 5.0
-
-@dataclass
-class PhysicalParams:
-    DRONE_RADIUS: float = 15.0
 
 @dataclass
 class PathPlanningParams:
