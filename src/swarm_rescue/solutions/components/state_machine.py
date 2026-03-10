@@ -23,6 +23,8 @@ class DroneState(Enum):
         GOING_RETURN_AREA = auto()
 
         EVALUATE_END_OF_MISSION = auto()
+        CHOOSING_NEW_WOUNDED = auto()
+        GOING_TO_WOUNDED = auto()
         END_OF_MISSION = auto()
 
 class DroneStateMachine:
@@ -43,6 +45,8 @@ class DroneStateMachine:
             DroneState.CHOOSING_NEW_FRONTIER: ChoosingNewFrontierState(drone),
             DroneState.GOING_TO_FRONTIER: GoingToFrontierState(drone),
             DroneState.EVALUATE_END_OF_MISSION: EvaluateEndOfMissionState(drone),
+            DroneState.CHOOSING_NEW_WOUNDED: ChoosingNewWoundedState(drone),
+            DroneState.GOING_TO_WOUNDED: GoingToWoundedState(drone),
             DroneState.END_OF_MISSION: EndOfMissionState(drone),
         }
         
@@ -85,8 +89,21 @@ class DroneStateMachine:
             },
             DroneState.EVALUATE_END_OF_MISSION: {
                 "near_obstacle": DroneState.AVOIDING_OBSTACLE,
+                "not_revisited_all_wounded_locations": DroneState.CHOOSING_NEW_WOUNDED,
                 "sufficient_exploration_score": DroneState.END_OF_MISSION,
                 "insufficient_exploration_score": DroneState.FOLLOWING_WALL
+            },
+            DroneState.CHOOSING_NEW_WOUNDED: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
+                "revisited_all_wounded_locations": DroneState.EVALUATE_END_OF_MISSION,
+                "not_revisited_all_wounded_locations": DroneState.GOING_TO_WOUNDED
+            },
+            DroneState.GOING_TO_WOUNDED: {
+                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
+                "finished_path": DroneState.CHOOSING_NEW_WOUNDED,
+                "found_wounded": DroneState.GRASPING_WOUNDED,
+                "is_near_rescuing_drone": DroneState.WAITING,
+                "is_path_blocked": DroneState.CHOOSING_NEW_WOUNDED
             },
             DroneState.END_OF_MISSION: {
                 "near_obstacle": DroneState.AVOIDING_OBSTACLE,

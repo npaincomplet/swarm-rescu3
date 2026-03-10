@@ -148,6 +148,20 @@ class EvaluateEndOfMissionState(DroneState):
         return self.drone.null_command
 
 
+class ChoosingNewWoundedState(DroneState):
+    def handle(self):
+        self.drone.plan_path_to_next_sighting()
+        return self.drone.null_command
+    
+    def on_exit(self):
+        self.drone.exploration_tracker.wounded_revisit_index += 1
+
+
+class GoingToWoundedState(DroneState):
+    def handle(self):
+        return self.drone.follow_path()
+
+
 class EndOfMissionState(DroneState):
     def on_enter(self):
         self.drone.plan_path_to_return_area()

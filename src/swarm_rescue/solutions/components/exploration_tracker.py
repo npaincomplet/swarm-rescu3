@@ -5,8 +5,17 @@ from swarm_rescue.solutions.utils.dataclasses_config import ExplorationTrackerPa
 class ExplorationTracker:
     def __init__(self):
         self.wounded_sighting_positions: List[np.array] = []
+        self.wounded_revisit_index = 0
         self.exploration_tracker_params = ExplorationTrackerParams
     
+    @property
+    def number_of_sightings(self):
+        return len(self.wounded_sighting_positions)
+
+    @property
+    def revisited_all_wounded_locations(self):
+        return self.wounded_revisit_index >= self.number_of_sightings
+
     def _wounded_sighting_is_new(self, sighting_position):
         """
         A wounded sighting is considered new if it's far enough from every other already registered sightings.
@@ -23,3 +32,11 @@ class ExplorationTracker:
         for received_position in received_sighting_positions:
             if self._wounded_sighting_is_new(received_position):
                 self.wounded_sighting_positions.append(received_position)
+
+    def assign_wounded_sighting(self):
+        if self.revisited_all_wounded_locations:
+            return None
+        
+        assigned_wounded_sighting = self.wounded_sighting_positions[self.wounded_revisit_index]
+
+        return assigned_wounded_sighting

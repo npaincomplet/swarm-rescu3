@@ -83,6 +83,7 @@ class MyDroneFrontex(DroneAbstract):
 
         # End of mission
         self.end_of_mission_params = EndOfMissionParams()
+        self.next_wounded_sighting = None
 
     def _init_sensors(self):
         self.sensor_manager = SensorManager()
@@ -285,6 +286,11 @@ class MyDroneFrontex(DroneAbstract):
     def wounded_sighting_positions(self):
         return self.exploration_tracker.wounded_sighting_positions
 
+    @property
+    def revisited_all_wounded_locations(self):
+        """Successfully revisited all wounded locations"""
+        return self.exploration_tracker.revisited_all_wounded_locations
+
     # Property misc
 
     @property
@@ -332,7 +338,9 @@ class MyDroneFrontex(DroneAbstract):
             "is_near_rescuing_drone": is_near_rescuing_drone,
             "just_took_damage": self.just_took_damage,
             "sufficient_exploration_score": sufficient_exploration_score,
-            "insufficient_exploration_score": not sufficient_exploration_score
+            "insufficient_exploration_score": not sufficient_exploration_score,
+            "revisited_all_wounded_locations": self.revisited_all_wounded_locations,
+            "not_revisited_all_wounded_locations": not self.revisited_all_wounded_locations
         }
 
     def is_killed(self):
@@ -390,8 +398,7 @@ class MyDroneFrontex(DroneAbstract):
 
         self.memory.update(self.position, self.orientation, self.drone_health, command)
 
-        if self.identifier == 0:
-            print(f"Drone {self.identifier} | Timestep: {self.timestep_count} | State: {self.state_machine.current_state} | Number wounded sightings: {len(self.wounded_sighting_positions)}")
+        # print(f"Drone {self.identifier} - State: {self.current_state}")
 
         return command
 
@@ -476,6 +483,22 @@ class MyDroneFrontex(DroneAbstract):
 
         path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=False)
         self.path_controller.set_path(path, self.position)
+
+    def assign_wounded_sighting(self):
+        return self.exploration_tracker.assign_wounded_sighting()
+
+    def plan_path_to_next_sighting(self):
+        self.next_wounded_sighting = self.assign_wounded_sighting()
+
+        if self.next_wounded_sighting is not None:
+            start_pos = self.position
+            target_pos = self.next_wounded_sighting
+
+            path = self.path_planner.plan_path_to_target(start_pos, target_pos, holds_wounded=False)
+            if path is None:
+                self.path_controller.reset_path()
+            else:
+                self.path_controller.set_path(path, self.position)
 
     def check_near_rescuing_drone(self, threshold, messages=None):
         """
