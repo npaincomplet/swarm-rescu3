@@ -6,6 +6,10 @@ class MappingParams:
     RESOLUTION: int = 8     # 8 to 1 factor from simulation pixels to grid (efficiency)
 
 @dataclass
+class ExplorationTrackerParams:
+    SAME_WOUNDED_RADIUS: float = 100.0
+
+@dataclass
 class CommunicationParams:
     TIME_INTERVAL : int = 30
     MAX_INFO_DELAY: int = 2

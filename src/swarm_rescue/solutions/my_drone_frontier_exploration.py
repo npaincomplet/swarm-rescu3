@@ -18,6 +18,7 @@ from swarm_rescue.solutions.components.sensor_manager import SensorManager
 from swarm_rescue.solutions.components.memory import DroneMemory
 from swarm_rescue.solutions.components.visualization_drawer import VisualizationDrawer
 from swarm_rescue.solutions.utils.data_serializer import PositionTracker
+from swarm_rescue.solutions.components.exploration_tracker import ExplorationTracker
 
 from scipy.optimize import linear_sum_assignment
 
@@ -43,6 +44,7 @@ class MyDroneFrontex(DroneAbstract):
         self._init_logging()
         self._init_visualization()
         self._init_memory()
+        self._init_exploration_tracking()
 
     def _init_mapping(self):
         self.mapping_params = MappingParams()
@@ -137,6 +139,9 @@ class MyDroneFrontex(DroneAbstract):
     def _init_memory(self):
         self.memory = DroneMemory()
 
+    def _init_exploration_tracking(self):
+        self.exploration_tracker = ExplorationTracker()
+
     # Properties to access communication-related values
 
     @property
@@ -193,7 +198,11 @@ class MyDroneFrontex(DroneAbstract):
     @property
     def min_dist_wounded(self):
         return self.sensor_manager.min_dist_wounded
-    
+
+    @property
+    def all_in_sight_wounded_pos(self):
+        return self.sensor_manager.all_in_sight_wounded_pos
+
     @property
     def within_grasping_distance(self):
         return self.found_wounded and self.min_dist_wounded < self.grasping_params.GRASPING_DISTANCE
@@ -272,6 +281,10 @@ class MyDroneFrontex(DroneAbstract):
     def initial_position(self):
         return self.memory.position.initial_value
     
+    @property
+    def wounded_sighting_positions(self):
+        return self.exploration_tracker.wounded_sighting_positions
+
     # Property misc
 
     @property
@@ -349,9 +362,6 @@ class MyDroneFrontex(DroneAbstract):
             return self.null_command
 
         self.timestep_count += 1
-        
-        self.mapping()
-        self.communication_management()
 
         lidar_values = self.lidar_values()
         ray_angles = self.lidar_rays_angles()
@@ -360,6 +370,10 @@ class MyDroneFrontex(DroneAbstract):
                                             semantic_values,
                                             self.estimated_pose, 
                                             self.wounded_locked)
+        
+        self.mapping()
+        self.communication_management()
+        self.exploration_tracker_management()
 
         # Update state machine with conditions
         conditions = self.get_sensor_conditions()
@@ -375,6 +389,9 @@ class MyDroneFrontex(DroneAbstract):
         command = self.sanitize_command(command)
 
         self.memory.update(self.position, self.orientation, self.drone_health, command)
+
+        if self.identifier == 0:
+            print(f"Drone {self.identifier} | Timestep: {self.timestep_count} | State: {self.state_machine.current_state} | Number wounded sightings: {len(self.wounded_sighting_positions)}")
 
         return command
 
@@ -483,6 +500,12 @@ class MyDroneFrontex(DroneAbstract):
             found_and_near_wounded=found_and_near_wounded
         )
     
+    def exploration_tracker_management(self):
+        self.merge_wounded_sighting(self.all_in_sight_wounded_pos)
+    
+    def merge_wounded_sighting(self, received_sighting_positions):
+        self.exploration_tracker.merge_wounded_sighting(received_sighting_positions)
+
     def position_update(self):
         self.pose_estimator_manager.update_all(
             gps_position=self.measured_gps_position(),

@@ -5,6 +5,7 @@ class DroneMessage:
     class Subject:
         SWARM_INFO = "SWARM_INFO"
         MAPPING = "MAPPING"
+        WOUNDED_SIGHTING = "WOUNDED_SIGHTING"
 
     def __init__(self, subject: str, arg, drone_id=None):
         if subject not in vars(DroneMessage.Subject).values():
@@ -65,6 +66,12 @@ class CommunicationManager:
         messages.append(DroneMessage(
             subject=DroneMessage.Subject.MAPPING,
             arg={"map": self.drone.grid.grid}
+        ))
+        
+        # Share wounded sightings
+        messages.append(DroneMessage(
+            subject=DroneMessage.Subject.WOUNDED_SIGHTING,
+            arg=self.drone.all_in_sight_wounded_pos
         ))
 
         return messages
@@ -135,6 +142,9 @@ class CommunicationManager:
 
         elif drone_msg.subject == DroneMessage.Subject.SWARM_INFO:
             self._merge_swarm_info(drone_msg.arg)
+            
+        elif drone_msg.subject == DroneMessage.Subject.WOUNDED_SIGHTING:
+            self._merge_wounded_sighting(drone_msg.arg)
 
     def _merge_swarm_info(self, received_data):
         """Merge received swarm info with local data, keeping most recent info
@@ -145,3 +155,6 @@ class CommunicationManager:
                 self.latest_swarm_infos[drone_id] = drone_info
             elif drone_info.timestep > self.latest_swarm_infos[drone_id].timestep:
                 self.latest_swarm_infos[drone_id] = drone_info
+
+    def _merge_wounded_sighting(self, received_sighting_positions):
+        self.drone.merge_wounded_sighting(received_sighting_positions)

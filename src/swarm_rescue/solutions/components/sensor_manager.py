@@ -26,6 +26,7 @@ class SensorManager:
         self.epsilon_rescue_center = 0.0
         self.is_too_close_to_rescue_center = False
         self.min_dist_wounded = 1000.0
+        self.all_in_sight_wounded_pos = []
         
     def reset_semantic_sensor_values(self):
         self.near_other_drone = False
@@ -35,6 +36,7 @@ class SensorManager:
         self.epsilon_rescue_center = 0.0
         self.is_too_close_to_rescue_center = False
         self.min_dist_wounded = 1000.0
+        self.all_in_sight_wounded_pos = []
     
     def process_lidar_sensor(self, lidar_values, ray_angles):
         """
@@ -84,6 +86,11 @@ class SensorManager:
                 v = (data.angle * data.angle) + \
                     (data.distance * data.distance / 10 ** 5)
                 scores.append((v, data.angle, data.distance))
+                
+                dx = data.distance * math.cos(data.angle + estimated_pose.orientation)
+                dy = data.distance * math.sin(data.angle + estimated_pose.orientation)
+                detection_position = np.array(estimated_pose.position) + np.array([dx, dy])
+                self.all_in_sight_wounded_pos.append(detection_position)
             
             elif (data.entity_type == DroneSemanticSensor.TypeEntity.DRONE):
                 if data.distance < self.sensor_params.NEAR_OTHER_DRONE_THRESHOLD:
