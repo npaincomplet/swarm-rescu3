@@ -162,15 +162,18 @@ class GoingToWoundedState(DroneState):
         if self.drone.finished_path:
             self.drone.exploration_tracker.wounded_revisit_index += 1
 
-class EndOfMissionState(DroneState):
+
+class GoingEndOfMissionState(DroneState):
     def on_enter(self):
         self.drone.plan_path_to_return_area()
-
+    
     def handle(self):
-        if self.drone.path_controller.finished_path and not self.drone.is_inside_return_area:
-            self.drone.plan_path_to_return_area()
+        return self.drone.follow_path()
 
-        if self.drone.path_controller.finished_path:
+    def on_exit(self):
+        self.drone.reset_path_params()
+
+
+class EndOfMissionState(DroneState):
+    def handle(self):
             return self.drone.null_command
-        else:
-            return self.drone.follow_path()

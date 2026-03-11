@@ -347,7 +347,9 @@ class MyDroneFrontex(DroneAbstract):
             "sufficient_exploration_score": sufficient_exploration_score,
             "insufficient_exploration_score": not sufficient_exploration_score,
             "revisited_all_assigned_wounded_locations": self.revisited_all_assigned_wounded_locations,
-            "not_revisited_all_assigned_wounded_locations": not self.revisited_all_assigned_wounded_locations
+            "not_revisited_all_assigned_wounded_locations": not self.revisited_all_assigned_wounded_locations,
+            "inside_return_area": self.is_inside_return_area,
+            "outside_return_area": not self.is_inside_return_area
         }
 
     def is_killed(self):
