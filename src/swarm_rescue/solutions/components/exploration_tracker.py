@@ -6,7 +6,10 @@ class ExplorationTracker:
     def __init__(self):
         self.wounded_sighting_positions: List[np.array] = []
         self.wounded_revisit_index = 0
-        self.exploration_tracker_params = ExplorationTrackerParams
+
+        self.kill_positions = []
+
+        self.exploration_tracker_params = ExplorationTrackerParams()
     
     @property
     def number_of_sightings(self):
@@ -41,3 +44,6 @@ class ExplorationTracker:
         assigned_wounded_sighting = self.wounded_sighting_positions[self.wounded_revisit_index]
 
         return assigned_wounded_sighting
+
+    def update_kill_positions(self):
+        pass

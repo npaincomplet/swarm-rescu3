@@ -87,6 +87,7 @@ class SensorManager:
                     (data.distance * data.distance / 10 ** 5)
                 scores.append((v, data.angle, data.distance))
                 
+                # One in-sight entity may have multiple sightings associated at the same timestep if multiple semantic rays collide it
                 dx = data.distance * math.cos(data.angle + estimated_pose.orientation)
                 dy = data.distance * math.sin(data.angle + estimated_pose.orientation)
                 detection_position = np.array(estimated_pose.position) + np.array([dx, dy])

@@ -138,6 +138,7 @@ class GridParams:
     CLIP_MAX: float = 40.0
     WORLD_BORDERS_VALUE: float = CLIP_MAX
     FRONTIER_ARTIFACT_RESET_VALUE: float = CLIP_MAX
+    KILL_ZONE_VALUE: float = CLIP_MAX
 
     # Used for the ternary map conversion
     FREE_THRESHOLD: float = 0
@@ -145,6 +146,8 @@ class GridParams:
 
     MIN_UNREACHABLE_REGION_SIZE: int = 30
     UNREACHABLE_REGION_VALUE: float = CLIP_MAX / 2.0
+
+    KILL_ZONE_CELL_RADIUS: int = math.ceil(50 / MappingParams.RESOLUTION)
 
     GRID_DISPLAY_RATIO: float = 0.4
 

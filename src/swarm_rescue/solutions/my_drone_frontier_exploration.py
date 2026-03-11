@@ -297,6 +297,10 @@ class MyDroneFrontex(DroneAbstract):
             return self.exploration_tracker.revisited_all_assigned_wounded_locations
         else:
             return True
+    
+    @property
+    def kill_positions(self):
+        return self.exploration_tracker.kill_positions
 
     # Property misc
 
@@ -408,6 +412,8 @@ class MyDroneFrontex(DroneAbstract):
         self.memory.update(self.position, self.orientation, self.drone_health, command)
 
         # print(f"Drone {self.identifier} - State: {self.current_state}")
+        if self.kill_positions:
+            print(f"Drone {self.identifier} - Kill positions: {self.kill_positions}")
 
         return command
 
@@ -569,6 +575,9 @@ class MyDroneFrontex(DroneAbstract):
         self.position_update()
 
         self.grid.update(pose=self.estimated_pose, gps_enabled=self.is_gps_enabled)
+
+        for kill_position in self.kill_positions:
+            self.grid.mark_kill_zone_as_obstacle(kill_position)
     
     def compute_exploration_score(self):
         return self.grid.compute_exploration_score()

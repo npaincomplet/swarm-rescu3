@@ -553,6 +553,22 @@ class OccupancyGrid(Grid):
                 return False
             
         return True
+    
+    def mark_kill_zone_as_obstacle(self, kill_position):
+        """Mark a kill zone location as an inflated impassable obstacle"""
+        center_cell = self._conv_world_to_grid(kill_position)
+        x_center, y_center = center_cell
+
+        mark_cell_radius = self.grid_params.KILL_ZONE_CELL_RADIUS
+        mark_cell_value = self.grid_params.KILL_ZONE_VALUE
+        cell = np.empty(2, dtype=int)
+        
+        for dx in range(-mark_cell_radius, mark_cell_radius + 1):
+            for dy in range(-mark_cell_radius, mark_cell_radius + 1):
+                cell[0] = x_center + dx
+                cell[1] = y_center + dy
+                if self.cell_in_bounds(cell):
+                    self._clip_and_update_values(cell[0], cell[1], mark_cell_value)
 
     def mark_unreachable_undiscovered_as_obstacles(self):
         undiscovered_mask = self.undiscovered_mask().astype(np.uint8)
