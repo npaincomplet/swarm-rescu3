@@ -12,6 +12,7 @@ class MappingParams:
 @dataclass
 class ExplorationTrackerParams:
     SAME_WOUNDED_RADIUS: float = 100.0
+    SAME_KILLED_DRONE_RADIUS: float = 100.0
 
 @dataclass
 class CommunicationParams:

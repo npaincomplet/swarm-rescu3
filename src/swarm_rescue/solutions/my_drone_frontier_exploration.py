@@ -205,6 +205,10 @@ class MyDroneFrontex(DroneAbstract):
         return self.sensor_manager.all_in_sight_wounded_pos
 
     @property
+    def in_sight_killed_drones(self):
+        return self.sensor_manager.in_sight_killed_drones
+
+    @property
     def within_grasping_distance(self):
         return self.found_wounded and self.min_dist_wounded < self.grasping_params.GRASPING_DISTANCE
     
@@ -299,8 +303,8 @@ class MyDroneFrontex(DroneAbstract):
             return True
     
     @property
-    def kill_positions(self):
-        return self.exploration_tracker.kill_positions
+    def killed_drones_positions(self):
+        return self.exploration_tracker.killed_drones_positions
 
     # Property misc
 
@@ -412,8 +416,10 @@ class MyDroneFrontex(DroneAbstract):
         self.memory.update(self.position, self.orientation, self.drone_health, command)
 
         # print(f"Drone {self.identifier} - State: {self.current_state}")
-        if self.kill_positions:
-            print(f"Drone {self.identifier} - Kill positions: {self.kill_positions}")
+        if self.killed_drones_positions:
+            print(f"Drone {self.identifier} - Kill positions: {self.killed_drones_positions}")
+        
+        print(f"Lidar values: {self.lidar_values()}\n")
 
         return command
 
@@ -556,6 +562,7 @@ class MyDroneFrontex(DroneAbstract):
     
     def exploration_tracker_management(self):
         self.merge_wounded_sighting(self.all_in_sight_wounded_pos)
+        self.exploration_tracker.update_killed_drones_positions(self.in_sight_killed_drones)
     
     def merge_wounded_sighting(self, received_sighting_positions):
         self.exploration_tracker.merge_wounded_sighting(received_sighting_positions)
@@ -576,8 +583,8 @@ class MyDroneFrontex(DroneAbstract):
 
         self.grid.update(pose=self.estimated_pose, gps_enabled=self.is_gps_enabled)
 
-        for kill_position in self.kill_positions:
-            self.grid.mark_kill_zone_as_obstacle(kill_position)
+        for killed_drone_position in self.killed_drones_positions:
+            self.grid.mark_kill_zone_as_obstacle(killed_drone_position)
     
     def compute_exploration_score(self):
         return self.grid.compute_exploration_score()

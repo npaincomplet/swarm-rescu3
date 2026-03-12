@@ -27,6 +27,7 @@ class SensorManager:
         self.is_too_close_to_rescue_center = False
         self.min_dist_wounded = 1000.0
         self.all_in_sight_wounded_pos = []
+        self.in_sight_killed_drones = []
         
     def reset_semantic_sensor_values(self):
         self.near_other_drone = False
@@ -37,6 +38,7 @@ class SensorManager:
         self.is_too_close_to_rescue_center = False
         self.min_dist_wounded = 1000.0
         self.all_in_sight_wounded_pos = []
+        self.in_sight_killed_drones = []
     
     def process_lidar_sensor(self, lidar_values, ray_angles):
         """
@@ -120,7 +122,11 @@ class SensorManager:
             best_score_tuple = min(filtered_scores, key=lambda x: x[0])
             self.epsilon_wounded = best_score_tuple[1]
             self.min_dist_wounded = best_score_tuple[2]
+    
+    def detect_killed_drones(self, lidar_values, ray_angles, estimated_pose):
+        self.in_sight_killed_drones = []
 
     def process_sensors(self, lidar_values, ray_angles, semantic_values, estimated_pose, wounded_locked):
         self.process_lidar_sensor(lidar_values, ray_angles)
         self.process_semantic_sensor(semantic_values, estimated_pose, wounded_locked)
+        self.detect_killed_drones(lidar_values, ray_angles, estimated_pose)

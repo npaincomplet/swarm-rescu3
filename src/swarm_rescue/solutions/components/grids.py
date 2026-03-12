@@ -554,9 +554,9 @@ class OccupancyGrid(Grid):
             
         return True
     
-    def mark_kill_zone_as_obstacle(self, kill_position):
+    def mark_kill_zone_as_obstacle(self, killed_drone_position):
         """Mark a kill zone location as an inflated impassable obstacle"""
-        center_cell = self._conv_world_to_grid(kill_position)
+        center_cell = self._conv_world_to_grid(killed_drone_position)
         x_center, y_center = center_cell
 
         mark_cell_radius = self.grid_params.KILL_ZONE_CELL_RADIUS

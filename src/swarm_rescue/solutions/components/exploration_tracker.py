@@ -7,7 +7,7 @@ class ExplorationTracker:
         self.wounded_sighting_positions: List[np.array] = []
         self.wounded_revisit_index = 0
 
-        self.kill_positions = []
+        self.killed_drones_positions = []
 
         self.exploration_tracker_params = ExplorationTrackerParams()
     
@@ -45,5 +45,13 @@ class ExplorationTracker:
 
         return assigned_wounded_sighting
 
-    def update_kill_positions(self):
-        pass
+    def _killed_drone_sighting_is_new(self, sighting_position):
+        for existing_sighting in self.killed_drones_positions:
+            if np.linalg.norm(np.array(sighting_position) - np.array(existing_sighting)) < self.exploration_tracker_params.SAME_KILLED_DRONE_RADIUS:
+                return False
+        return True
+
+    def update_killed_drones_positions(self, in_sight_killed_drones):
+        for new_position in in_sight_killed_drones:
+            if self._killed_drone_sighting_is_new(new_position):
+                self.killed_drones_positions.append(new_position)
