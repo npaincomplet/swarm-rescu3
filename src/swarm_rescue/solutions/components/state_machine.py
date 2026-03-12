@@ -130,17 +130,32 @@ class DroneStateMachine:
             }
         }
         
+        # Define labels for states
+        self.state_labels = {
+            DroneState.GOING_TO_FRONTIER: {"needs_position_estimate"},
+            DroneState.GOING_RESCUE_CENTER: {"needs_position_estimate"},
+            DroneState.GOING_TO_WOUNDED: {"needs_position_estimate"},
+            DroneState.GOING_END_OF_MISSION: {"needs_position_estimate"}
+        }
+
         self.active_handler = self.states[self.current_state]
     
     def update(self, conditions):
         """Update the state based on conditions"""
         self.previous_state = self.current_state
         
-        # Check for state transitions
-        for condition, next_state in self.transitions.get(self.current_state, {}).items():
-            if conditions[condition]:
-                self.current_state = next_state
-                break
+        # Get labels for the current state
+        current_state_labels = self.state_labels.get(self.current_state, set())
+        
+        # Global overrides
+        if  "needs_position_estimate" in current_state_labels and conditions.get("no_gps", False) and conditions.get("near_obstacle", False):
+            self.current_state = DroneState.SEARCHING_WALL
+        else:
+            # Check for regular state transitions
+            for condition, next_state in self.transitions.get(self.current_state, {}).items():
+                if conditions.get(condition):
+                    self.current_state = next_state
+                    break
                 
         # Handle state change
         if self.current_state != self.previous_state:

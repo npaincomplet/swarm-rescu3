@@ -359,7 +359,8 @@ class MyDroneFrontex(DroneAbstract):
             "revisited_all_assigned_wounded_locations": self.revisited_all_assigned_wounded_locations,
             "not_revisited_all_assigned_wounded_locations": not self.revisited_all_assigned_wounded_locations,
             "inside_return_area": self.is_inside_return_area,
-            "outside_return_area": not self.is_inside_return_area
+            "outside_return_area": not self.is_inside_return_area,
+            "no_gps": not self.is_gps_enabled
         }
 
     def is_killed(self):

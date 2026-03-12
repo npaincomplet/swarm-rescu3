@@ -2,7 +2,7 @@
 Constants used throughout the drone simulation.
 """
 
-FRAME_RATE: float = 1 / 30
+FRAME_RATE: float = 1 / 500
 LINEAR_SPEED_RATIO: float = 3.0
 ANGULAR_SPEED_RATIO: float = 0.6
 

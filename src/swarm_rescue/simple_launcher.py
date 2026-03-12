@@ -9,6 +9,18 @@ from swarm_rescue.map_editor.map_no_gps import MyMapno_gps
 from swarm_rescue.map_editor.map_kill_zone_1 import MyMapkill_zone_1
 from swarm_rescue.map_editor.map_kill_zone_2 import MyMapkill_zone_2
 from swarm_rescue.maps.map_test_special_zones import MapTestSpecialZones
+from swarm_rescue.maps.map_final_2022_23 import MapFinal2022_23
+from swarm_rescue.maps.map_final_2023_24_01 import MapFinal_2023_24_01
+from swarm_rescue.maps.map_final_2023_24_02 import MapFinal_2023_24_02
+from swarm_rescue.maps.map_final_2023_24_03 import MapFinal_2023_24_03
+from swarm_rescue.maps.map_final_2024_25_01 import MapFinal_2024_25_01
+from swarm_rescue.maps.map_final_2024_25_02 import MapFinal_2024_25_02
+from swarm_rescue.maps.map_final_2024_25_03 import MapFinal_2024_25_03
+from swarm_rescue.maps.map_intermediate_01 import MapIntermediate01
+from swarm_rescue.maps.map_intermediate_02 import MapIntermediate02
+from swarm_rescue.maps.map_medium_01 import MapMedium01
+from swarm_rescue.maps.map_medium_02 import MapMedium02
+from swarm_rescue.maps.map_random import MapRandom
 from swarm_rescue.solutions.my_drone_eval import MyDroneEval
 
 
@@ -20,8 +32,8 @@ class MyDrone(MyDroneEval):
 def main():
     # Simple launcher for one map
     # zones_config: ZonesConfig = [ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE]
-    zones_config: ZonesConfig = [ZoneType.KILL_ZONE]
-    the_map = MyMapkill_zone_1(drone_type=MyDrone, zones_config=zones_config)
+    zones_config: ZonesConfig = []
+    the_map = MapFinal_2024_25_02(drone_type=MyDrone, zones_config=zones_config)
 
     my_gui = GuiSR(the_map=the_map, draw_interactive=False, headless=False)
 
