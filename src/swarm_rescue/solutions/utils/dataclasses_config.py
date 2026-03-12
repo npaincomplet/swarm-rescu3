@@ -44,6 +44,7 @@ class WallFollowingParams:
     DIST_TO_STAY: float = 40.0
     SPEED_FOLLOWING_WALL: float = 0.3
     SPEED_TURNING: float = 0.05
+    STEP_FOLLOWING_WALL: int = 100
 
 @dataclass
 class EndOfMissionParams:

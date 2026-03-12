@@ -125,7 +125,8 @@ class DroneStateMachine:
                 "near_obstacle": DroneState.AVOIDING_OBSTACLE,
                 "found_wounded": DroneState.GRASPING_WOUNDED,
                 "lost_wall": DroneState.SEARCHING_WALL,
-                "is_near_rescuing_drone": DroneState.WAITING
+                "is_near_rescuing_drone": DroneState.WAITING,
+                "following_wall_time_over": DroneState.WAITING
             }
         }
         

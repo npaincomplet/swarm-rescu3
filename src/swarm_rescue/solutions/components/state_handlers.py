@@ -54,6 +54,9 @@ class SearchingWallState(DroneState):
 
 
 class FollowingWallState(DroneState):
+    def on_enter(self):
+        self.drone.step_following_wall_count = 0
+
     def handle(self):
         epsilon_wall_distance = self.drone.min_dist_wall - self.drone.wall_following_params.DIST_TO_STAY
 
@@ -78,6 +81,8 @@ class FollowingWallState(DroneState):
             epsilon_wall_distance, 
             self.drone.odometer_values()
         )
+
+        self.drone.step_following_wall_count += 1
 
         return command
 
