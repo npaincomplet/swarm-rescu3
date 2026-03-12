@@ -61,6 +61,9 @@ class SensorParams:
     NEAR_OBSTACLE_THRESHOLD: float = ObstacleAvoidanceParams.OBSTACLE_ALERT_THRESHOLD
     NEAR_OTHER_DRONE_THRESHOLD: float = 200.0
 
+    OBSTRUCTED_WOUNDED_THRESHOLD: float = 30.0
+    OBSTRUCTED_WOUNDED_CONE_ANGLE: float = 30.0 * math.pi / 180.0
+
 @dataclass
 class PIDParams:
     KP_ANGLE: float = 9 / math.pi

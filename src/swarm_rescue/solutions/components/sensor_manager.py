@@ -57,12 +57,14 @@ class SensorManager:
         self.near_wall = self.min_dist_wall < self.sensor_params.NEAR_WALL_THRESHOLD
         self.epsilon_wall_angle = angle_nearest_obstacle - np.pi/2
     
-    def process_semantic_sensor(self, semantic_values, estimated_pose, wounded_locked):
+    def process_semantic_sensor(self, semantic_values, estimated_pose, wounded_locked, lidar_values, ray_angles):
         """
         Args:
             semantic_values: Array of semantic sensor readings
             estimated_pose: Current pose estimation
             wounded_locked: List of wounded entities locked by other drones
+            lidar_values: Array of distance values from lidar
+            ray_angles: Array of angles corresponding to lidar values
         """
         if semantic_values is None:
             return
@@ -83,17 +85,33 @@ class SensorManager:
             # If the wounded person detected is held by nobody
             elif (data.entity_type == DroneSemanticSensor.TypeEntity.WOUNDED_PERSON 
                   and not data.grasped):
-                self.found_wounded = True
-
-                v = (data.angle * data.angle) + \
-                    (data.distance * data.distance / 10 ** 5)
-                scores.append((v, data.angle, data.distance))
                 
                 # One in-sight entity may have multiple sightings associated at the same timestep if multiple semantic rays collide it
                 dx = data.distance * math.cos(data.angle + estimated_pose.orientation)
                 dy = data.distance * math.sin(data.angle + estimated_pose.orientation)
                 detection_position = np.array(estimated_pose.position) + np.array([dx, dy])
                 self.all_in_sight_wounded_pos.append(detection_position)
+                
+                # Check for lidar obstruction in the direction of the wounded using a cone of rays (particularly useful in the case of a wall with small gaps)
+                obstructed = False
+
+                angle_diffs = np.abs((ray_angles - data.angle + np.pi) % (2 * np.pi) - np.pi)
+                rays_in_cone_indices = np.where(angle_diffs <= self.sensor_params.OBSTRUCTED_WOUNDED_CONE_ANGLE)[0]
+                
+                # If any of the obstacle distances within the cone are closer than the wounded person, it is obstructed
+                if rays_in_cone_indices.size > 0:
+                    cone_lidar_values = lidar_values[rays_in_cone_indices]
+                    if np.any(cone_lidar_values < data.distance - self.sensor_params.OBSTRUCTED_WOUNDED_THRESHOLD):
+                        obstructed = True
+                
+                if obstructed:
+                    continue
+
+                self.found_wounded = True
+
+                v = (data.angle * data.angle) + \
+                    (data.distance * data.distance / 10 ** 5)
+                scores.append((v, data.angle, data.distance))
             
             elif (data.entity_type == DroneSemanticSensor.TypeEntity.DRONE):
                 if data.distance < self.sensor_params.NEAR_OTHER_DRONE_THRESHOLD:
@@ -128,5 +146,5 @@ class SensorManager:
 
     def process_sensors(self, lidar_values, ray_angles, semantic_values, estimated_pose, wounded_locked):
         self.process_lidar_sensor(lidar_values, ray_angles)
-        self.process_semantic_sensor(semantic_values, estimated_pose, wounded_locked)
+        self.process_semantic_sensor(semantic_values, estimated_pose, wounded_locked, lidar_values, ray_angles)
         self.detect_killed_drones(lidar_values, ray_angles, estimated_pose)
