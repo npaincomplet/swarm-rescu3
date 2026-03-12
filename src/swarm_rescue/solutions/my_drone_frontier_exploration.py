@@ -262,7 +262,7 @@ class MyDroneFrontex(DroneAbstract):
     
     @property
     def is_moving(self):
-        return self.memory.position.is_moving() or self.memory.orientation.is_rotating()
+        return self.memory.position.is_moving()
     
     # Property to access exploration-related values
 
@@ -360,7 +360,8 @@ class MyDroneFrontex(DroneAbstract):
             "not_revisited_all_assigned_wounded_locations": not self.revisited_all_assigned_wounded_locations,
             "inside_return_area": self.is_inside_return_area,
             "outside_return_area": not self.is_inside_return_area,
-            "no_gps": not self.is_gps_enabled
+            "no_gps": not self.is_gps_enabled,
+            "not_moving": not self.is_moving
         }
 
     def is_killed(self):

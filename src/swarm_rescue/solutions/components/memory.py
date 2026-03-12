@@ -4,6 +4,7 @@ from swarm_rescue.solutions.utils.dataclasses_config import MemoryParams
 
 class History:
     def __init__(self, memory_size: int):
+        self._memory_size = memory_size
         self._history = deque(maxlen=memory_size)
         self._initial_value = None
     
@@ -31,12 +32,12 @@ class PositionHistory(History):
         super().update(pos_copy)
 
     def is_moving(self) -> bool:
-        if len(self._history) < 2:
-            return False
+        if len(self._history) < self._memory_size:
+            return True
         
         vector_displacements = np.array([self._history[i+1] - self._history[i] for i in range(len(self._history) - 1)])
         distance_displacements = np.linalg.norm(vector_displacements, axis=1)
-        return np.max(distance_displacements) > self.is_moving_threshold
+        return np.sum(distance_displacements) > self.is_moving_threshold
 
 class OrientationHistory(History):
     def __init__(self):

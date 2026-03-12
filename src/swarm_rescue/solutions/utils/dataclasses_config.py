@@ -170,10 +170,10 @@ class MemoryParams:
     TIMESTEPS_PER_SECOND: int = 30
 
     HEALTH_MEMORY_SIZE: int = 2
-    POSITION_MEMORY_SIZE: int = 1 * TIMESTEPS_PER_SECOND
+    POSITION_MEMORY_SIZE: int = 10 * TIMESTEPS_PER_SECOND
     COMMAND_MEMORY_SIZE: int = 1
 
-    IS_MOVING_THRESHOLD: float = LocalizationParams.GPS_NOISE_STD / 5
+    IS_MOVING_THRESHOLD: float = 100.0
     IS_ROTATING_THRESHOLD: float = LocalizationParams.COMPASS_NOISE_STD / 5
 
 @dataclass

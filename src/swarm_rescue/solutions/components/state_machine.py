@@ -148,7 +148,9 @@ class DroneStateMachine:
         current_state_labels = self.state_labels.get(self.current_state, set())
         
         # Global overrides
-        if  "needs_position_estimate" in current_state_labels and conditions.get("no_gps", False) and conditions.get("near_obstacle", False):
+        if self.previous_state != DroneState.END_OF_MISSION and conditions.get("not_moving", False):
+            self.current_state = DroneState.WAITING
+        elif  "needs_position_estimate" in current_state_labels and conditions.get("no_gps", False) and conditions.get("near_obstacle", False):
             self.current_state = DroneState.SEARCHING_WALL
         else:
             # Check for regular state transitions
