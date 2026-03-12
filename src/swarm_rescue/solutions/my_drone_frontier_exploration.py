@@ -416,10 +416,6 @@ class MyDroneFrontex(DroneAbstract):
         self.memory.update(self.position, self.orientation, self.drone_health, command)
 
         # print(f"Drone {self.identifier} - State: {self.current_state}")
-        if self.killed_drones_positions:
-            print(f"Drone {self.identifier} - Kill positions: {self.killed_drones_positions}")
-        
-        print(f"Lidar values: {self.lidar_values()}\n")
 
         return command
 
