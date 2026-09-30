@@ -117,25 +117,12 @@ class DroneStateMachine:
                 "outside_return_area": DroneState.GOING_END_OF_MISSION
             },
             DroneState.SEARCHING_WALL: {
-                "found_wounded": DroneState.GRASPING_WOUNDED,
-                "near_wall": DroneState.FOLLOWING_WALL,
-                "is_near_rescuing_drone": DroneState.WAITING
+                "near_wall": DroneState.FOLLOWING_WALL
             },
             DroneState.FOLLOWING_WALL: {
-                "near_obstacle": DroneState.AVOIDING_OBSTACLE,
-                "found_wounded": DroneState.GRASPING_WOUNDED,
                 "lost_wall": DroneState.SEARCHING_WALL,
-                "is_near_rescuing_drone": DroneState.WAITING,
-                "following_wall_time_over": DroneState.WAITING
+                "following_wall_time_over_and_gps": DroneState.WAITING
             }
-        }
-        
-        # Define labels for states
-        self.state_labels = {
-            DroneState.GOING_TO_FRONTIER: {"needs_position_estimate"},
-            DroneState.GOING_RESCUE_CENTER: {"needs_position_estimate"},
-            DroneState.GOING_TO_WOUNDED: {"needs_position_estimate"},
-            DroneState.GOING_END_OF_MISSION: {"needs_position_estimate"}
         }
 
         self.active_handler = self.states[self.current_state]
@@ -144,13 +131,8 @@ class DroneStateMachine:
         """Update the state based on conditions"""
         self.previous_state = self.current_state
         
-        # Get labels for the current state
-        current_state_labels = self.state_labels.get(self.current_state, set())
-        
         # Global overrides
-        if self.previous_state != DroneState.END_OF_MISSION and conditions.get("not_moving", False):
-            self.current_state = DroneState.WAITING
-        elif  "needs_position_estimate" in current_state_labels and conditions.get("no_gps", False) and conditions.get("near_obstacle", False):
+        if self.current_state != DroneState.END_OF_MISSION and conditions.get("not_moving", False) and conditions.get("no_gps", False):
             self.current_state = DroneState.SEARCHING_WALL
         else:
             # Check for regular state transitions

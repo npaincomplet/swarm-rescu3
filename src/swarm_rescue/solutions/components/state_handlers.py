@@ -60,11 +60,6 @@ class FollowingWallState(DroneState):
     def handle(self):
         epsilon_wall_distance = self.drone.min_dist_wall - self.drone.wall_following_params.DIST_TO_STAY
 
-        self.drone.logging_variables({
-            "epsilon_wall_angle": self.drone.epsilon_wall_angle, 
-            "epsilon_wall_distance": epsilon_wall_distance
-        })
-
         command = {
             "forward": self.drone.wall_following_params.SPEED_FOLLOWING_WALL, 
             "lateral": 0.0, 

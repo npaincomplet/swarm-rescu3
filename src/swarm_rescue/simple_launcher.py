@@ -32,7 +32,7 @@ class MyDrone(MyDroneEval):
 def main():
     # Simple launcher for one map
     # zones_config: ZonesConfig = [ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE]
-    zones_config: ZonesConfig = []
+    zones_config: ZonesConfig = [ZoneType.NO_GPS_ZONE]
     the_map = MapFinal_2024_25_03(drone_type=MyDrone, zones_config=zones_config)
 
     my_gui = GuiSR(the_map=the_map, draw_interactive=False, headless=False)

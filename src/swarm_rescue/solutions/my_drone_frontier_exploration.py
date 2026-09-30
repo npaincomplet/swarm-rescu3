@@ -342,7 +342,7 @@ class MyDroneFrontex(DroneAbstract):
             "far_from_obstacle": not self.near_obstacle,
             "near_wall": self.near_wall,
             "lost_wall": not self.near_wall,
-            "following_wall_time_over": self.step_following_wall_count >= self.wall_following_params.STEP_FOLLOWING_WALL,
+            "following_wall_time_over_and_gps": self.step_following_wall_count >= self.wall_following_params.STEP_FOLLOWING_WALL and self.is_gps_enabled,
             "found_wounded": self.found_wounded,
             "holding_wounded": self.holding_wounded,
             "lost_wounded": not self.found_wounded and not self.holding_wounded,

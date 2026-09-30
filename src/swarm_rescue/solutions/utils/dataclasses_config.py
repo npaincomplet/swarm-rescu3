@@ -41,8 +41,8 @@ class ExploringFrontiersParams:
 @dataclass
 class WallFollowingParams:
     DMAX: float = 60.0
-    DIST_TO_STAY: float = 40.0
-    SPEED_FOLLOWING_WALL: float = 0.3
+    DIST_TO_STAY: float = 30.0
+    SPEED_FOLLOWING_WALL: float = 0.2
     SPEED_TURNING: float = 0.05
     STEP_FOLLOWING_WALL: int = 100
 
@@ -97,7 +97,7 @@ class PathPlanningParams:
     WORLD_INFLATION_RADIUS: float = PhysicalParams.DRONE_RADIUS * 3   # pixels
     GRID_INFLATION_RADIUS: int = int(WORLD_INFLATION_RADIUS / MappingParams.RESOLUTION)
 
-    OBSTACLE_BASE_PENALTY: float = 10.0
+    OBSTACLE_BASE_PENALTY: float = 1000.0
 
     CAUTION_PENALTY_ALLOWANCE: float = 1.0
     SHORTCUT_PENALTY_ALLOWANCE: float = OBSTACLE_BASE_PENALTY / 4
