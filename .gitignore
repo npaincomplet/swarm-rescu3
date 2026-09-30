@@ -4,7 +4,8 @@ all_launch.sh
 solutions_mine
 data_website.txt
 /env
-/docs
+/docs/*
+!/docs/report.pdf
 src/swarm_rescue/tools/generated_code.py
 src/swarm_rescue/various
 src/swarm_rescue/solutions_off
